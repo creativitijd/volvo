@@ -97,9 +97,12 @@ function readUrl(): Filters {
   };
 }
 
-/** Houd de Next-historystaat intact. `null` laat de App Router de pagina opnieuw ophalen. */
+/**
+ * Werk het adres bij zonder de Next-patch op `history.replaceState`.
+ * Die patch behandelt een url-wijziging als navigatie en haalt de hele voorraad opnieuw op.
+ */
 function replaceUrl(url: string) {
-  window.history.replaceState(window.history.state, "", url);
+  History.prototype.replaceState.call(window.history, window.history.state, "", url);
 }
 
 function writeUrl(f: Filters) {
@@ -137,7 +140,6 @@ function carYear(c: Card) {
 export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedAt: number }) {
   const { favorites, user, ready, requireLogin } = useAccount();
   const resultsRef = useRef<HTMLElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const [f, setF] = useState<Filters>(EMPTY);
   const [shown, setShown] = useState(PAGE);
   const [here, setHere] = useState<Place | null>(null);
@@ -171,11 +173,6 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
   }, [drawer]);
 
   useEffect(() => {
-    if (!panel || !drawer) return;
-    panelRef.current?.scrollIntoView({ block: "nearest" });
-  }, [panel, drawer]);
-
-  useEffect(() => {
     const t = setTimeout(() => {
       setF(readUrl());
       setNow(Date.now());
@@ -199,8 +196,10 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
 
   useEffect(() => () => clearSavedControls(), []);
   useEffect(() => {
-    if (now) writeUrl(f);
-  }, [f, now]);
+    if (!now || drawer) return;
+    const id = window.setTimeout(() => writeUrl(f), 200);
+    return () => window.clearTimeout(id);
+  }, [f, now, drawer]);
 
   const change = (fn: (prev: Filters) => Filters) => {
     setF(fn);
@@ -490,7 +489,6 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
 
         {panel && (
           <div
-            ref={panelRef}
             className={`${PANEL_SLOT[panel]} rounded-2xl bg-white p-2 md:order-last md:mt-1 md:-mx-5 md:w-full md:basis-full md:rounded-none md:border-t md:border-[#e8e8e6] md:bg-transparent md:px-5 md:py-3`}
           >
             {panel === "model" && (

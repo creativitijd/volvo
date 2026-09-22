@@ -136,8 +136,8 @@ export function DistributionRange({
               <rect x={x} y={-4} width={w} height={48} />
             </clipPath>
           </defs>
-          <path d={d} fill="none" stroke="#e0e0e0" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-          <path d={d} fill="none" stroke="#f5d547" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" clipPath={`url(#${clipId})`} />
+          <path d={d} fill="none" stroke="#e0e0e0" strokeWidth="0.7" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={d} fill="none" stroke="#f5d547" strokeWidth="0.9" strokeLinejoin="round" strokeLinecap="round" clipPath={`url(#${clipId})`} />
         </svg>
         <div className="mt-1 flex justify-between">
           {ticks.map((t) => (

@@ -41,18 +41,20 @@ export default async function ModelsPage() {
           {[...rows.entries()].map(([number, group]) => (
             <div key={number}>
               <p className="mb-2 font-serif text-[22px] leading-none font-light tracking-tight text-[#3d3d3d]">{number}</p>
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                 {group.map((m) => (
                   <Link
                     key={m.model}
                     href={`/modellen/${modelSlug(m.model)}`}
-                    className="w-[148px] shrink-0 overflow-hidden rounded-xl border border-[#ececeb] bg-white text-left transition hover:border-ink"
+                    className="min-w-0 overflow-hidden rounded-xl border border-[#ececeb] bg-white text-left transition hover:border-ink sm:w-[148px]"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={modelIconSrc(m.model)} alt="" className="mx-auto mt-2 h-[78px] w-[76%] object-contain" />
-                    <div className="flex items-center justify-between gap-1.5 px-2.5 pt-1 pb-2.5">
-                      <span className="truncate text-[13.5px] font-semibold">{m.model.replace(" Cross Country", " CC")}</span>
-                      <span className="shrink-0 rounded-full bg-mark px-1.5 py-0.5 text-[11px] font-medium text-ink">{m.count}</span>
+                    <img src={modelIconSrc(m.model)} alt="" className="mx-auto mt-1.5 h-12 w-[80%] object-contain sm:mt-2 sm:h-[78px]" />
+                    <div className="flex flex-col items-center gap-0.5 px-1.5 pt-0.5 pb-2 sm:flex-row sm:justify-between sm:gap-1.5 sm:px-2.5 sm:pt-1 sm:pb-2.5">
+                      <span className="text-center text-[12px] leading-tight font-semibold sm:truncate sm:text-left sm:text-[13.5px]">
+                        {m.model.replace(" Cross Country", " CC")}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-mark px-1.5 py-0.5 text-[10px] font-medium text-ink sm:text-[11px]">{m.count}</span>
                     </div>
                   </Link>
                 ))}
