@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { summarize, type Card } from "@/lib/card";
 import { modelSlug } from "@/lib/stats";
@@ -25,6 +26,7 @@ import { clearSavedControls, setSavedControls } from "@/lib/saved-view";
 import { HeartIcon } from "./AccountMenu";
 import {
   EMPTY_CRITERIA,
+  LIST_KEYS,
   fromSearchParams,
   matches,
   matchesSegment,
@@ -105,10 +107,16 @@ function replaceUrl(url: string) {
   History.prototype.replaceState.call(window.history, window.history.state, "", url);
 }
 
+/** Parameters die wij beheren; al de rest (bv. utm_source uit een nieuwsbrief) blijft staan */
+const OWN_PARAMS = ["land", "staat", "model", "brandstof", "max", "km", "gereserveerd", "sort", ...LIST_KEYS];
+
 function writeUrl(f: Filters) {
-  const p = toSearchParams(f);
-  if (f.sort !== "price-asc" && f.sort !== "distance") p.set("sort", f.sort);
-  const qs = p.toString();
+  const params = new URLSearchParams(window.location.search);
+  for (const key of OWN_PARAMS) params.delete(key);
+  const mine = toSearchParams(f);
+  if (f.sort !== "price-asc" && f.sort !== "distance") mine.set("sort", f.sort);
+  for (const [key, value] of mine) params.set(key, value);
+  const qs = params.toString();
   replaceUrl(qs ? `?${qs}` : window.location.pathname);
 }
 
@@ -186,6 +194,20 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
     }, 0);
     return () => clearTimeout(t);
   }, []);
+
+  // Een klik op het logo of "Bekijk alle auto's" gaat naar dezelfde route: Next vervangt de url,
+  // maar de component blijft staan. Zonder dit bleven de oude filters actief.
+  const searchKey = useSearchParams().toString();
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    setF(readUrl());
+    setShown(PAGE);
+    setPanel(null);
+  }, [searchKey]);
 
   useEffect(() => {
     setSavedControls({ onlySaved, count: favorites.size }, () => {
@@ -351,24 +373,6 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
     setPanel(null);
   }
 
-  function SavedButton({ className = "" }: { className?: string }) {
-    return (
-      <button
-        type="button"
-        aria-pressed={onlySaved}
-        aria-label={onlySaved ? "Alle wagens tonen" : "Toon alleen bewaarde auto's"}
-        onClick={() => {
-          setOnlySaved((v) => !v);
-          setShown(PAGE);
-        }}
-        className={`inline-flex items-center gap-1.5 rounded-full border border-[#d8232a] px-3 py-2.5 text-[#d8232a] ${onlySaved ? "bg-[#fff6f6]" : "bg-white hover:bg-[#fff6f6]"} ${className}`}
-      >
-        <HeartIcon filled={onlySaved || favorites.size > 0} className="size-4" />
-        <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{favorites.size}</span>
-      </button>
-    );
-  }
-
   return (
     <div>
       <div className="sticky top-3 z-30 md:hidden">
@@ -479,13 +483,17 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             open={panel === "offer"}
             onClick={() => togglePanel("offer")}
           />
-          {(f.powertrains.length > 0 || panel === "motor") && (
-            <Pill className="order-[21] md:order-none" label={f.powertrains.length ? `${f.powertrains.length} motoren` : "Motor"} active={f.powertrains.length > 0} open={panel === "motor"} onClick={() => togglePanel("motor")} />
-          )}
-          {(f.packs.length > 0 || panel === "packs") && (
-            <Pill className="order-[23] md:order-none" label={f.packs.length ? `${f.packs.length} pakketten` : "Pakketten"} active={f.packs.length > 0} open={panel === "packs"} onClick={() => togglePanel("packs")} />
-          )}
-          <SavedButton className="ml-auto max-md:hidden md:order-none" />
+          <Pill className="order-[21] md:order-none" label={f.powertrains.length ? `${f.powertrains.length} motoren` : "Motor"} active={f.powertrains.length > 0} open={panel === "motor"} onClick={() => togglePanel("motor")} />
+          <Pill className="order-[23] md:order-none" label={f.packs.length ? `${f.packs.length} pakketten` : "Pakketten"} active={f.packs.length > 0} open={panel === "packs"} onClick={() => togglePanel("packs")} />
+          <SavedButton
+            className="ml-auto max-md:hidden md:order-none"
+            onlySaved={onlySaved}
+            count={favorites.size}
+            onToggle={() => {
+              setOnlySaved((v) => !v);
+              setShown(PAGE);
+            }}
+          />
 
         {panel && (
           <div
@@ -509,6 +517,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             )}
             {panel === "budget" && (
               <DistributionRange
+                title="Budget"
                 min={priceDomain.min}
                 max={priceDomain.max}
                 step={500}
@@ -536,6 +545,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             )}
             {panel === "km" && (
               <DistributionRange
+                title="Kilometerstand"
                 min={0}
                 max={kmDomain.max}
                 step={1000}
@@ -563,6 +573,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             )}
             {panel === "year" && (
               <DistributionRange
+                title="Bouwjaar"
                 min={yearDomain.min}
                 max={yearDomain.max}
                 step={1}
@@ -762,7 +773,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
               <path d="M10 3.5 5.5 8 10 12.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Alle auto's
+            Alle auto&apos;s
           </button>
         )}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
@@ -1062,5 +1073,31 @@ function ColorPanel({ base, selected, onChange }: { base: Card[]; selected: stri
         })}
       </div>
     </div>
+  );
+}
+
+/** Knop "toon enkel bewaarde wagens". Staat buiten Finder: anders verliest hij focus bij elke render. */
+function SavedButton({
+  className = "",
+  onlySaved,
+  count,
+  onToggle,
+}: {
+  className?: string;
+  onlySaved: boolean;
+  count: number;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={onlySaved}
+      aria-label={onlySaved ? "Alle wagens tonen" : "Toon alleen bewaarde auto's"}
+      onClick={onToggle}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-[#d8232a] px-3 py-2.5 text-[#d8232a] ${onlySaved ? "bg-[#fff6f6]" : "bg-white hover:bg-[#fff6f6]"} ${className}`}
+    >
+      <HeartIcon filled={onlySaved || count > 0} className="size-4" />
+      <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{count}</span>
+    </button>
   );
 }

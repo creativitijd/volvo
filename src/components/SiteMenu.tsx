@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAccount } from "./AccountProvider";
 import { HeartIcon } from "./AccountMenu";
@@ -18,6 +19,7 @@ const ITEMS = [
 
 export function SiteMenu() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const { user, ready, isAdmin, requireLogin, signOut } = useAccount();
   const saved = useSyncExternalStore(subscribeSaved, getSavedSnapshot, getSavedSnapshot);
 
@@ -54,6 +56,7 @@ export function SiteMenu() {
       <div
         className={`fixed top-0 right-0 bottom-0 z-50 flex w-[330px] max-w-[86vw] flex-col bg-white shadow-[-18px_0_44px_rgba(23,26,24,0.14)] transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
         aria-hidden={!open}
+        inert={!open}
       >
         <div className="flex items-center justify-between px-6 pt-6 pb-3.5">
           <div className="text-xs tracking-[0.08em] text-[#9a9a9a] uppercase">Menu</div>
@@ -89,13 +92,13 @@ export function SiteMenu() {
             onClick={() => {
               setOpen(false);
               if (saved.active) toggleSaved();
-              else window.location.href = "/?bewaard=1";
+              else router.push("/?bewaard=1");
             }}
             className="flex w-full items-center justify-between rounded-full border border-[#d8232a] px-4 py-2.5 text-[13.5px] text-[#d8232a]"
           >
             <span className="inline-flex items-center gap-2">
               <HeartIcon filled={saved.onlySaved || saved.count > 0} className="size-4" />
-              Bewaarde auto's
+              Bewaarde auto&apos;s
             </span>
             <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{saved.count}</span>
           </button>

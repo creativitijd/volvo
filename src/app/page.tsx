@@ -1,5 +1,6 @@
 import { getMarket } from "@/lib/listings";
 import { toCard } from "@/lib/card";
+import { Suspense } from "react";
 import { Finder } from "@/components/Finder";
 import { SiteShell } from "@/components/SiteShell";
 
@@ -23,7 +24,9 @@ export default async function Home() {
   return (
     <SiteShell hero={hero}>
       <h1 className="sr-only">Zoek jouw Volvo: stockwagens, Volvo Selekt en particulieren in België en Nederland</h1>
-      <Finder cards={cards} updatedAt={snapshot.updatedAt} />
+      <Suspense fallback={null}>
+        <Finder cards={cards} updatedAt={snapshot.updatedAt} />
+      </Suspense>
     </SiteShell>
   );
 }

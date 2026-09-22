@@ -46,6 +46,7 @@ export function DistributionRange({
   labelMax,
   onChange,
   formatTick,
+  title,
 }: {
   min: number;
   max: number;
@@ -59,12 +60,17 @@ export function DistributionRange({
   labelMax: string;
   onChange: (low: number, high: number) => void;
   formatTick: (v: number) => string;
+  /** Naam van de schuifbalk, voor schermlezers ("Budget: van") */
+  title: string;
 }) {
   const clipId = useId().replace(/:/g, "");
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef<"min" | "max" | null>(null);
+  // De sleep-handlers lezen dit later uit; bijwerken hoort na de render, niet erin
   const state = useRef({ low, high, min, max, step, onChange });
-  state.current = { low, high, min, max, step, onChange };
+  useEffect(() => {
+    state.current = { low, high, min, max, step, onChange };
+  });
 
   const pct = (v: number) => ((v - min) / (max - min || 1)) * 100;
 
@@ -165,6 +171,12 @@ export function DistributionRange({
           <div className="absolute top-[11px] h-1 rounded-sm bg-ink" style={{ left: `${x}%`, right: `${100 - pct(high)}%` }} />
           <Handle
             left={x}
+            label={`${title}: van`}
+            value={low}
+            text={labelMin}
+            min={min}
+            max={max}
+            onKey={(delta, to) => apply("min", to ?? low + delta * step)}
             onDown={(e) => {
               e.stopPropagation();
               drag.current = "min";
@@ -172,6 +184,12 @@ export function DistributionRange({
           />
           <Handle
             left={pct(high)}
+            label={`${title}: tot`}
+            value={high}
+            text={labelMax}
+            min={min}
+            max={max}
+            onKey={(delta, to) => apply("max", to ?? high + delta * step)}
             onDown={(e) => {
               e.stopPropagation();
               drag.current = "max";
@@ -192,11 +210,53 @@ function Bound({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Handle({ left, onDown }: { left: number; onDown: (e: ReactPointerEvent) => void }) {
+function Handle({
+  left,
+  onDown,
+  label,
+  value,
+  text,
+  min,
+  max,
+  onKey,
+}: {
+  left: number;
+  onDown: (e: ReactPointerEvent) => void;
+  label: string;
+  value: number;
+  text: string;
+  min: number;
+  max: number;
+  onKey: (delta: number, to?: number) => void;
+}) {
   return (
     <div
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      aria-valuetext={text}
       onPointerDown={onDown}
-      className="absolute top-[3px] size-5 -translate-x-1/2 cursor-grab rounded-full border-2 border-ink bg-white shadow-[0_2px_6px_rgba(23,26,24,0.2)]"
+      onKeyDown={(e) => {
+        const big = (max - min) / 10;
+        const keys: Record<string, () => void> = {
+          ArrowLeft: () => onKey(-1),
+          ArrowDown: () => onKey(-1),
+          ArrowRight: () => onKey(1),
+          ArrowUp: () => onKey(1),
+          PageDown: () => onKey(-big),
+          PageUp: () => onKey(big),
+          Home: () => onKey(0, min),
+          End: () => onKey(0, max),
+        };
+        const action = keys[e.key];
+        if (!action) return;
+        e.preventDefault();
+        action();
+      }}
+      className="absolute top-[3px] size-5 -translate-x-1/2 cursor-grab rounded-full border-2 border-ink bg-white shadow-[0_2px_6px_rgba(23,26,24,0.2)] focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:outline-none"
       style={{ left: `${left}%` }}
     />
   );
