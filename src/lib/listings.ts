@@ -11,21 +11,40 @@ export function idFromSlug(slug: string): string | null {
   return i > 0 ? `${s.slice(0, i)}:${s.slice(i + 2)}` : null;
 }
 
-// Deals één keer per snapshot berekenen (de regressie loopt over duizenden wagens)
-let cache: { key: number; count: number; snapshot: Snapshot; deals: Map<string, Deal>; byId: Map<string, Listing> } | null = null;
+export interface Market {
+  key: number;
+  snapshot: Snapshot;
+  deals: Map<string, Deal>;
+  byId: Map<string, Listing>;
+}
 
-export async function getMarket() {
+// De volledige markt is zwaar (duizenden wagens): per proces hooguit één keer per uur inladen,
+// en gelijktijdige aanvragen laten meeliften op dezelfde belofte.
+const TTL = 3600_000;
+let cache: { at: number; market: Market } | null = null;
+let loading: Promise<Market> | null = null;
+
+async function loadMarket(): Promise<Market> {
   const snapshot = await getSnapshot();
-  if (!cache || cache.key !== snapshot.updatedAt || cache.count !== snapshot.listings.length) {
-    cache = {
-      key: snapshot.updatedAt,
-      count: snapshot.listings.length,
-      snapshot,
-      deals: computeDeals(snapshot.listings),
-      byId: new Map(snapshot.listings.map((l) => [l.id, l])),
-    };
-  }
-  return cache;
+  return {
+    key: snapshot.updatedAt,
+    snapshot,
+    deals: computeDeals(snapshot.listings),
+    byId: new Map(snapshot.listings.map((l) => [l.id, l])),
+  };
+}
+
+export async function getMarket(): Promise<Market> {
+  if (cache && Date.now() - cache.at < TTL) return cache.market;
+  loading ??= loadMarket()
+    .then((market) => {
+      cache = { at: Date.now(), market };
+      return market;
+    })
+    .finally(() => {
+      loading = null;
+    });
+  return loading;
 }
 
 /** Vergelijkbare wagens: zelfde land, staat en model; dichtst bij in prijs (en kilometerstand bij tweedehands) */

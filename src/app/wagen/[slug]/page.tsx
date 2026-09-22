@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getMarket, idFromSlug, similarTo } from "@/lib/listings";
+import { idFromSlug } from "@/lib/listings";
+import { getCarPage } from "@/lib/car";
 import { pagePath, toCard } from "@/lib/card";
 import { DEAL_TEXT, type Deal } from "@/lib/deals";
 import { DRIVE_LABEL, formatEuro } from "@/lib/format";
@@ -14,8 +16,15 @@ import { ListingCard } from "@/components/ListingCard";
 import { PriceChart } from "@/components/PriceChart";
 import { SourceBadge } from "@/components/SourceBadge";
 
-// Detailpagina's worden bij het eerste bezoek gebouwd en daarna een uur gecachet
+// Detailpagina's worden bij het eerste bezoek gebouwd en daarna een uur gecachet.
+// generateStaticParams is nodig: zonder die functie behandelt Next de route als volledig dynamisch
+// en wordt elke wagenpagina bij élke aanvraag opnieuw opgebouwd.
 export const revalidate = 3600;
+export const dynamicParams = true;
+
+export function generateStaticParams() {
+  return []; // niets vooraf bouwen: elke pagina wordt bij het eerste bezoek gemaakt en daarna gecachet
+}
 
 const DAY = 86_400_000;
 
@@ -26,13 +35,11 @@ const SOURCE_NAME: Record<string, string> = {
   volvo_nl: "volvocars.com",
 };
 
-async function load(slug: string) {
+// React dedupliceert dit binnen één render: generateMetadata en de pagina delen dezelfde aanvraag
+const load = cache(async (slug: string) => {
   const id = idFromSlug(slug);
-  if (!id) return null;
-  const market = await getMarket();
-  const car = market.byId.get(id);
-  return car ? { car, market } : null;
-}
+  return id ? getCarPage(id) : null;
+});
 
 export async function generateMetadata(props: PageProps<"/wagen/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
@@ -51,16 +58,13 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
   const { slug } = await props.params;
   const found = await load(slug);
   if (!found) notFound();
-  const { car, market } = found;
+  const { car, deal, similar, now } = found;
   if (car.source === "particulier") redirect(pagePath(car));
 
-  const deal = market.deals.get(car.id) ?? null;
   const country = car.country ?? countryOfSource(car.source);
   const used = car.condition === "used";
-  const now = market.key; // tijdstip van de laatste sync (stabiel binnen de cache)
   const saving = car.listPrice && car.listPrice > car.price ? car.listPrice - car.price : 0;
   const history = car.priceHistory ?? [[car.firstSeen, car.price]];
-  const similar = similarTo(car, market.snapshot.listings);
   const regYear = car.firstRegistration ? new Date(car.firstRegistration).getFullYear() : null;
   const atDealerSince = car.listedAt ? Math.round((now - car.listedAt) / DAY) : null;
   const followedSince = Math.round((now - car.firstSeen) / DAY);
@@ -194,7 +198,7 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
           <h2 className="font-serif mb-5 text-[28px] font-light tracking-tight">Vergelijkbare {car.model}&apos;s</h2>
           <div className="grid gap-[22px] [grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))]">
             {similar.map((s) => (
-              <ListingCard key={s.id} card={toCard(s, market.deals.get(s.id))} isNew={false} distance={null} />
+              <ListingCard key={s.id} card={toCard(s)} isNew={false} distance={null} />
             ))}
           </div>
         </section>

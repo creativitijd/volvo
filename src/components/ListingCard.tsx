@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { Card } from "@/lib/card";
+import { cardPath, type Card } from "@/lib/card";
 import { formatEuro } from "@/lib/format";
 import { SourceBadge } from "./SourceBadge";
 import { useAccount } from "./AccountProvider";
@@ -34,7 +34,7 @@ export function ListingCard({
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-[18px] border border-[#e9e9e9] bg-white transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(23,26,24,0.11)]">
-      <Link href={c.page} className="flex flex-1 flex-col">
+      <Link href={cardPath(c)} className="flex flex-1 flex-col">
         <div className="relative aspect-[1.79] overflow-hidden bg-[#ededed]">
           {c.image && (
             // eslint-disable-next-line @next/next/no-img-element

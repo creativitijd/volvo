@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Card } from "@/lib/card";
-import { EMPTY_CRITERIA, describe, matches, toSearchParams, type Criteria } from "@/lib/filters";
+import { EMPTY_CRITERIA, describe, toSearchParams, type Criteria } from "@/lib/filters";
 import { getSupabase } from "@/lib/supabase";
 import { useAccount } from "./AccountProvider";
 import { SignedOut } from "./SignedOut";
@@ -16,9 +15,10 @@ interface Alert {
   created_at: string;
 }
 
-export function AlertsView({ cards }: { cards: Card[] }) {
+export function AlertsView() {
   const { user, ready } = useAccount();
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
+  const [counts, setCounts] = useState<number[] | null>(null);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -26,9 +26,17 @@ export function AlertsView({ cards }: { cards: Card[] }) {
     sb.from("alerts")
       .select("id, criteria, frequency, last_sent_at, created_at")
       .order("created_at", { ascending: false })
-      .then(({ data }) =>
-        setAlerts(((data as Alert[]) ?? []).map((a) => ({ ...a, criteria: { ...EMPTY_CRITERIA, ...a.criteria } }))),
-      );
+      .then(async ({ data }) => {
+        const rows = ((data as Alert[]) ?? []).map((a) => ({ ...a, criteria: { ...EMPTY_CRITERIA, ...a.criteria } }));
+        setAlerts(rows);
+        // Aantallen worden op de server geteld: die heeft de wagens al in het geheugen
+        const res = await fetch("/api/alerts/count", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ criteria: rows.map((r) => r.criteria) }),
+        });
+        setCounts(res.ok ? ((await res.json()).counts as number[]) : null);
+      });
   }, [user]);
 
   async function setFrequency(id: string, frequency: Alert["frequency"]) {
@@ -61,15 +69,15 @@ export function AlertsView({ cards }: { cards: Card[] }) {
 
   return (
     <ul className="grid gap-3">
-      {alerts.map((a) => {
-        const count = cards.filter((c) => matches(c, a.criteria)).length;
+      {alerts.map((a, i) => {
+        const count = counts?.[i] ?? null;
         const qs = toSearchParams(a.criteria).toString();
         return (
           <li key={a.id} className="flex flex-col gap-4 rounded-2xl bg-surface p-5 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
               <p className="font-medium">{describe(a.criteria)}</p>
               <p className="mt-1 text-sm text-muted">
-                {count} {count === 1 ? "wagen" : "wagens"} op stock nu
+                {count == null ? "…" : `${count} ${count === 1 ? "wagen" : "wagens"}`} op stock nu
                 {a.last_sent_at &&
                   ` · laatste mail ${new Date(a.last_sent_at).toLocaleDateString("nl-BE", { day: "numeric", month: "long" })}`}
                 {" · "}

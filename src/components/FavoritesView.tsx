@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { Card } from "@/lib/card";
+import { useEffect, useState } from "react";
+import { toCard, type Card } from "@/lib/card";
+import type { Listing } from "@/lib/types";
 import { formatEuro } from "@/lib/format";
 import { getSupabase } from "@/lib/supabase";
 import { useAccount } from "./AccountProvider";
@@ -15,19 +16,40 @@ interface Row {
   created_at: string;
 }
 
-export function FavoritesView({ cards }: { cards: Card[] }) {
+export function FavoritesView() {
   const { user, ready, favorites } = useAccount();
   const [rows, setRows] = useState<Row[] | null>(null);
-  const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
+  // Actuele gegevens van enkel de bewaarde wagens (prijs kan gewijzigd zijn, wagen kan verkocht zijn)
+  const [current, setCurrent] = useState<Map<string, Card>>(new Map());
 
   useEffect(() => {
     const sb = getSupabase();
     if (!sb || !user) return;
-    sb.from("favorites")
-      .select("listing_id, snapshot, created_at")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setRows((data as Row[]) ?? []));
+    let cancelled = false;
+    (async () => {
+      const { data } = await sb
+        .from("favorites")
+        .select("listing_id, snapshot, created_at")
+        .order("created_at", { ascending: false });
+      const saved = (data as Row[]) ?? [];
+      if (cancelled) return;
+      setRows(saved);
+      if (!saved.length) return setCurrent(new Map());
+      const { data: live } = await sb
+        .from("listings")
+        .select("data")
+        .eq("active", true)
+        .in("id", saved.map((r) => r.listing_id));
+      if (cancelled) return;
+      const cards = ((live as { data: Listing }[]) ?? []).map((r) => toCard(r.data));
+      setCurrent(new Map(cards.map((c) => [c.id, c])));
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
+
+  const byId = current;
 
   if (!ready) return null;
   if (!user) return <SignedOut text="Log in om je bewaarde wagens te zien." />;

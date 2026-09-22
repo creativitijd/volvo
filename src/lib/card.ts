@@ -8,25 +8,26 @@ export function pagePath(l: Pick<Listing, "source" | "sourceId">): string {
   return l.source === "particulier" ? `/particulier/${l.sourceId}` : `/wagen/${l.source}--${encodeURIComponent(l.sourceId)}`;
 }
 
+/** Detailpagina van een kaart; afgeleid uit het id, zodat we het pad niet hoeven mee te sturen */
+export function cardPath(card: Pick<Card, "id">): string {
+  const i = card.id.indexOf(":");
+  return pagePath({ source: card.id.slice(0, i) as Listing["source"], sourceId: card.id.slice(i + 1) });
+}
+
 export interface Card {
   id: string;
-  /** Onze eigen detailpagina */
-  page: string;
   /** Prijsoordeel t.o.v. de markt (enkel als er genoeg vergelijkbare wagens zijn) */
   deal: { label: DealLabel; diff: number } | null;
   source: Source;
   country: Country;
   condition: Condition;
-  url: string;
   model: string;
-  title: string;
   year: number | null;
   fuel: string;
   powertrain: string | null;
   drive: string | null;
   hp: number | null;
   trim: string | null;
-  body: string | null;
   color: string | null;
   interior: string | null;
   listPrice: number | null;
@@ -36,7 +37,6 @@ export interface Card {
   image: string | null;
   dealer: string | null;
   city: string | null;
-  zip: string | null;
   province: string | null;
   lat: number | null;
   lon: number | null;
@@ -46,7 +46,6 @@ export interface Card {
   business: boolean;
   /** Jaar van eerste inschrijving (tweedehands) */
   regYear: number | null;
-  listedAt: number | null;
   firstSeen: number;
 }
 
@@ -54,21 +53,17 @@ export function toCard(l: Listing, deal?: Deal | null): Card {
   const country = l.country ?? countryOfSource(l.source);
   return {
     id: l.id,
-    page: pagePath(l),
     deal: deal ? { label: deal.label, diff: Math.round(deal.diff * 10) / 10 } : null,
     source: l.source,
     country,
     condition: l.condition,
-    url: l.url,
     model: l.model,
-    title: l.title,
     year: l.modelYear,
     fuel: l.fuel,
     powertrain: l.powertrain,
     drive: l.drive,
     hp: l.powerHp,
     trim: l.trim,
-    body: l.body,
     color: l.color,
     interior: l.interior,
     listPrice: l.listPrice,
@@ -78,7 +73,6 @@ export function toCard(l: Listing, deal?: Deal | null): Card {
     image: l.images[0] ?? null,
     dealer: l.dealer?.name ?? null,
     city: l.dealer?.city ?? null,
-    zip: l.dealer?.zip ?? null,
     province: l.dealer?.province ?? (country === "BE" ? beProvince(l.dealer?.zip ?? null) : null),
     lat: l.dealer?.lat ?? null,
     lon: l.dealer?.lon ?? null,
@@ -86,7 +80,6 @@ export function toCard(l: Listing, deal?: Deal | null): Card {
     reserved: Boolean(l.reserved),
     business: l.sellerType === "business",
     regYear: l.firstRegistration ? new Date(l.firstRegistration).getFullYear() : null,
-    listedAt: l.listedAt,
     firstSeen: l.firstSeen,
   };
 }
