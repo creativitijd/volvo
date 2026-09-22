@@ -67,7 +67,7 @@ jobs:
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
       - name: Pagina verversen op Vercel
         if: ${{ env.REVALIDATE_URL != '' }}
-        run: curl -fsS -X POST "$REVALIDATE_URL" -H "authorization: Bearer $REVALIDATE_SECRET"
+        run: 'curl -fsS -X POST "$REVALIDATE_URL" -H "authorization: Bearer $REVALIDATE_SECRET"'
         env:
           REVALIDATE_URL: ${{ secrets.REVALIDATE_URL }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
