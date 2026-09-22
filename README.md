@@ -56,7 +56,9 @@ npm run dev
 ## Eigen advertenties (particulieren en bedrijven)
 
 - Particulieren én bedrijven (met bedrijfsnaam + btw-nummer, gecontroleerd op formaat) plaatsen hun Volvo via **/verkopen** (inloggen vereist). Foto's worden in de browser verkleind
-  (max. 1600 px) en opgeslagen in de Supabase Storage-bucket `listing-photos`.
+  (max. 1600 px) en via `/api/photos` opgeslagen in de S3-bucket bij Sevalla (`S3_ENDPOINT`, `S3_BUCKET_NAME`,
+  `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL`). De foto's van dealerwagens staan niet bij ons:
+  die tonen we rechtstreeks vanaf de server van de bron.
 - Elke advertentie wacht op goedkeuring op **/beheer**. Maak jezelf beheerder in de SQL Editor:
   `insert into admins (user_id) select id from auth.users where email = '<jouw e-mailadres>';`
   (log eerst één keer in op de site, zodat je account bestaat). Zet `ADMIN_EMAIL` als GitHub-secret om een mail
