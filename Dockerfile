@@ -1,6 +1,5 @@
-# Zelfde opzet als vakantiemodus: Sevalla geeft de environment variables
-# tijdens de build als echte env mee. Een ARG zonder --build-arg maakt
-# die waarde leeg, dus die staan hier bewust niet.
+# Sevalla geeft build-time variabelen door als --build-arg. Zonder ARG
+# ziet `npm run build` ze niet, en Next.js probeert dan de map data/ te lezen.
 
 FROM node:22-alpine AS base
 
@@ -14,6 +13,10 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

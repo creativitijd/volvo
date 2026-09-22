@@ -18,7 +18,13 @@ export async function getSnapshot(): Promise<Snapshot> {
 
   // Lokaal: één bestand per bron (data/volvo_be.json, data/volvo_selekt.json, ...)
   const dir = path.join(process.cwd(), "data");
-  const files = (await readdir(dir)).filter((f) => /^[a-z0-9_]+\.json$/.test(f));
+  let names: string[] = [];
+  try {
+    names = await readdir(dir);
+  } catch {
+    return { updatedAt: 0, listings: [] };
+  }
+  const files = names.filter((f) => /^[a-z0-9_]+\.json$/.test(f));
   const snaps: Snapshot[] = await Promise.all(files.map(async (f) => JSON.parse(await readFile(path.join(dir, f), "utf8"))));
   return {
     updatedAt: Math.max(0, ...snaps.map((s) => s.updatedAt)),
