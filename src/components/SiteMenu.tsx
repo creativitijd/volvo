@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useAccount } from "./AccountProvider";
+import { HeartIcon } from "./AccountMenu";
+import { CountrySwitch } from "./CountrySwitch";
+import { getSavedSnapshot, subscribeSaved, toggleSaved } from "@/lib/saved-view";
 
 const ITEMS = [
   ["/", "Bekijk alle auto's"],
@@ -14,6 +18,8 @@ const ITEMS = [
 
 export function SiteMenu() {
   const [open, setOpen] = useState(false);
+  const { user, ready, isAdmin, requireLogin, signOut } = useAccount();
+  const saved = useSyncExternalStore(subscribeSaved, getSavedSnapshot, getSavedSnapshot);
 
   useEffect(() => {
     if (!open) return;
@@ -60,7 +66,10 @@ export function SiteMenu() {
             ✕
           </button>
         </div>
-        <nav className="flex flex-col px-3.5 pb-6">
+        <div className="px-6 pb-2 md:hidden">
+          <CountrySwitch />
+        </div>
+        <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3.5">
           {ITEMS.map(([href, label]) => (
             <Link
               key={href}
@@ -73,6 +82,65 @@ export function SiteMenu() {
             </Link>
           ))}
         </nav>
+        <div className="mt-auto flex flex-col gap-2 border-t border-[#f0f0f0] px-6 py-4 md:hidden">
+          <button
+            type="button"
+            aria-pressed={saved.onlySaved}
+            onClick={() => {
+              setOpen(false);
+              if (saved.active) toggleSaved();
+              else window.location.href = "/?bewaard=1";
+            }}
+            className="flex w-full items-center justify-between rounded-full border border-[#d8232a] px-4 py-2.5 text-[13.5px] text-[#d8232a]"
+          >
+            <span className="inline-flex items-center gap-2">
+              <HeartIcon filled={saved.onlySaved || saved.count > 0} className="size-4" />
+              Bewaarde auto's
+            </span>
+            <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{saved.count}</span>
+          </button>
+          {ready && !user && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                requireLogin();
+              }}
+              className="w-full rounded-full bg-ink px-4 py-2.5 text-[13.5px] text-white"
+            >
+              Inloggen
+            </button>
+          )}
+          {ready && user && (
+            <div className="flex flex-col text-sm">
+              <p className="truncate px-1 pb-2 text-[#9a9a9a]">{user.email}</p>
+              <Link href="/favorieten" onClick={() => setOpen(false)} className="border-t border-[#f0f0f0] py-3">
+                Mijn favorieten
+              </Link>
+              <Link href="/meldingen" onClick={() => setOpen(false)} className="border-t border-[#f0f0f0] py-3">
+                Mijn meldingen
+              </Link>
+              <Link href="/mijn-advertenties" onClick={() => setOpen(false)} className="border-t border-[#f0f0f0] py-3">
+                Mijn advertenties
+              </Link>
+              {isAdmin && (
+                <Link href="/beheer" onClick={() => setOpen(false)} className="border-t border-[#f0f0f0] py-3">
+                  Beheer
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  signOut();
+                }}
+                className="border-t border-[#f0f0f0] py-3 text-left"
+              >
+                Uitloggen
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

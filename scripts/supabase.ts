@@ -4,19 +4,23 @@
 
 import type { Listing, Source } from "../src/lib/types.ts";
 
+/** Legacy keys (eyJ…) zijn een JWT en horen ook in Authorization. sb_secret_ is dat niet. */
+export function supabaseHeaders(key: string, extra?: Record<string, string>): Record<string, string> {
+  const value = key.trim();
+  const headers: Record<string, string> = { apikey: value, ...extra };
+  if (value.startsWith("eyJ")) headers.authorization = `Bearer ${value}`;
+  return headers;
+}
+
 export async function saveToSupabase(source: Source, listings: Listing[], now: number) {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) {
     console.log("(Supabase niet geconfigureerd — enkel het lokale JSON-bestand bijgewerkt)");
     return;
   }
 
-  const headers = {
-    apikey: key,
-    authorization: `Bearer ${key}`,
-    "content-type": "application/json",
-  };
+  const headers = supabaseHeaders(key, { "content-type": "application/json" });
   const rest = `${url}/rest/v1`;
 
   // 1. Bestaande prijzen ophalen om prijswijzigingen te detecteren

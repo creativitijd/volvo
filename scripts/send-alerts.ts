@@ -9,6 +9,7 @@ import { countryOfSource, type Listing } from "../src/lib/types.ts";
 import { EMPTY_CRITERIA, describe, matches, toSearchParams, type Criteria, type Matchable } from "../src/lib/filters.ts";
 import { formatEuro, province } from "../src/lib/format.ts";
 import { privateToListing, type PrivateListingRow } from "../src/lib/private.ts";
+import { supabaseHeaders } from "./supabase.ts";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,7 +31,7 @@ interface Alert {
   created_at: string;
 }
 
-const headers = { apikey: KEY!, authorization: `Bearer ${KEY}`, "content-type": "application/json" };
+const headers = supabaseHeaders(KEY ?? "", { "content-type": "application/json" });
 
 async function rest(path: string, init?: RequestInit) {
   const res = await fetch(`${SUPABASE_URL}${path}`, { ...init, headers: { ...headers, ...init?.headers } });

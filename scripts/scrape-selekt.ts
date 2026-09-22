@@ -12,7 +12,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { chromium, type Page } from "playwright-core";
 import type { Listing, Snapshot } from "../src/lib/types.ts";
-import { saveToSupabase } from "./supabase.ts";
+import { saveToSupabase, supabaseHeaders } from "./supabase.ts";
 import { provinceFor, saveGeoCache } from "./geo.ts";
 import { withHistory } from "./history.ts";
 
@@ -236,7 +236,7 @@ async function loadPrevious(): Promise<Map<string, Listing & { fetchedAt?: numbe
     const map = new Map<string, Listing & { fetchedAt?: number }>();
     for (let from = 0; ; from += 1000) {
       const res = await fetch(`${url}/rest/v1/listings?select=data&source=eq.${MARKET.source}&active=eq.true&order=id`, {
-        headers: { apikey: key, authorization: `Bearer ${key}`, range: `${from}-${from + 999}` },
+        headers: supabaseHeaders(key, { range: `${from}-${from + 999}` }),
       });
       if (!res.ok) throw new Error(`Supabase: ${res.status} ${await res.text()}`);
       const rows: { data: Listing }[] = await res.json();

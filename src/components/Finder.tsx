@@ -21,6 +21,7 @@ import { DistributionRange } from "./DistributionRange";
 import { UpdatedAgo } from "./UpdatedAgo";
 import { LocationForm, type Place } from "./LocationForm";
 import { useAccount } from "./AccountProvider";
+import { clearSavedControls, setSavedControls } from "@/lib/saved-view";
 import { HeartIcon } from "./AccountMenu";
 import {
   EMPTY_CRITERIA,
@@ -120,6 +121,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
   const [here, setHere] = useState<Place | null>(null);
   const [askLocation, setAskLocation] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
+  const [drawer, setDrawer] = useState(false);
   const [onlySaved, setOnlySaved] = useState(false);
   const [now, setNow] = useState(0);
 
@@ -127,21 +129,48 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
   const models = useMemo(() => summarize(cards), [cards]);
 
   useEffect(() => {
-    if (!panel) return;
+    if (!panel && !drawer) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPanel(null);
+      if (e.key !== "Escape") return;
+      if (panel) setPanel(null);
+      else setDrawer(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [panel]);
+  }, [panel, drawer]);
+
+  useEffect(() => {
+    if (!drawer) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [drawer]);
 
   useEffect(() => {
     const t = setTimeout(() => {
       setF(readUrl());
       setNow(Date.now());
+      if (new URLSearchParams(window.location.search).get("bewaard") === "1") {
+        setOnlySaved(true);
+        const params = new URLSearchParams(window.location.search);
+        params.delete("bewaard");
+        const query = params.toString();
+        window.history.replaceState(null, "", query ? `${window.location.pathname}?${query}` : window.location.pathname);
+      }
     }, 0);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    setSavedControls({ onlySaved, count: favorites.size }, () => {
+      setOnlySaved((value) => !value);
+      setShown(PAGE);
+    });
+  }, [onlySaved, favorites.size]);
+
+  useEffect(() => () => clearSavedControls(), []);
   useEffect(() => {
     if (now) writeUrl(f);
   }, [f, now]);
@@ -291,10 +320,87 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
   const kmActive = Boolean(f.minKm || f.maxKm);
   const yearActive = Boolean(f.minYear || f.maxYear);
 
+  function closeDrawer() {
+    setDrawer(false);
+    setPanel(null);
+  }
+
+  function SavedButton({ className = "" }: { className?: string }) {
+    return (
+      <button
+        type="button"
+        aria-pressed={onlySaved}
+        aria-label={onlySaved ? "Alle wagens tonen" : "Toon alleen bewaarde auto's"}
+        onClick={() => {
+          setOnlySaved((v) => !v);
+          setShown(PAGE);
+        }}
+        className={`inline-flex items-center gap-1.5 rounded-full border border-[#d8232a] px-3 py-2.5 text-[#d8232a] ${onlySaved ? "bg-[#fff6f6]" : "bg-white hover:bg-[#fff6f6]"} ${className}`}
+      >
+        <HeartIcon filled={onlySaved || favorites.size > 0} className="size-4" />
+        <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{favorites.size}</span>
+      </button>
+    );
+  }
+
   return (
     <div>
-      <div className="sticky top-3 z-30 overflow-hidden rounded-3xl bg-[#f6f6f6]">
-        <div className="flex flex-wrap items-center gap-2 px-4 py-4 sm:px-5">
+      <div className="sticky top-3 z-30 md:hidden">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDrawer(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[13.5px] text-white"
+          >
+            <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+              <path d="M2 3.5h12M4 8h8M6.5 12.5h3" strokeLinecap="round" />
+            </svg>
+            Filters
+            {chips.length > 0 && (
+              <span className="rounded-full bg-mark px-1.5 py-0.5 text-[11px] font-semibold text-ink">{chips.length}</span>
+            )}
+          </button>
+        </div>
+        {chips.length > 0 && (
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+            {chips.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                onClick={c.clear}
+                className="flex shrink-0 items-center gap-2 rounded-full bg-ink py-1.5 pr-3 pl-3.5 text-[12.5px] text-white"
+              >
+                {c.label}
+                <span className="text-sm leading-none opacity-60">×</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {drawer && (
+        <button
+          type="button"
+          aria-label="Filters sluiten"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={closeDrawer}
+        />
+      )}
+
+      <div
+        className={`sticky top-3 z-30 overflow-hidden rounded-3xl bg-[#f6f6f6] ${
+          drawer
+            ? "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:flex max-md:w-[min(100%,22.5rem)] max-md:animate-[vev-drawer_200ms_ease-out] max-md:flex-col max-md:overflow-y-auto max-md:rounded-none max-md:shadow-2xl"
+            : "max-md:hidden"
+        }`}
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e8e8e6] bg-[#f6f6f6] px-4 py-3 md:hidden">
+          <p className="text-[15px] font-semibold">Filters</p>
+          <button type="button" onClick={closeDrawer} className="rounded-full bg-white px-3 py-1.5 text-[13px] text-ink">
+            Sluiten
+          </button>
+        </div>
+        <div className="flex flex-col gap-2 px-4 py-4 md:flex-row md:flex-wrap md:items-center sm:px-5">
           <Pill label={f.model ?? "Model"} active={Boolean(f.model)} open={panel === "model"} onClick={() => togglePanel("model")} />
           <Pill
             label={priceActive ? `${formatEuro(priceLow)} – ${f.maxPrice ? formatEuro(priceHigh) : "…"}` : "Budget"}
@@ -346,19 +452,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
           {(f.packs.length > 0 || panel === "packs") && (
             <Pill label={f.packs.length ? `${f.packs.length} pakketten` : "Pakketten"} active={f.packs.length > 0} open={panel === "packs"} onClick={() => togglePanel("packs")} />
           )}
-          <button
-            type="button"
-            aria-pressed={onlySaved}
-            aria-label={onlySaved ? "Alle wagens tonen" : "Toon alleen bewaarde auto's"}
-            onClick={() => {
-              setOnlySaved((v) => !v);
-              setShown(PAGE);
-            }}
-            className={`ml-auto inline-flex items-center gap-1.5 rounded-full border border-[#d8232a] px-3 py-2.5 text-[#d8232a] ${onlySaved ? "bg-[#fff6f6]" : "bg-white hover:bg-[#fff6f6]"}`}
-          >
-            <HeartIcon filled={onlySaved || favorites.size > 0} className="size-4" />
-            <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{favorites.size}</span>
-          </button>
+          <SavedButton className="ml-auto max-md:hidden" />
         </div>
 
         {panel && (
@@ -613,6 +707,11 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             </button>
           </div>
         )}
+        <div className="sticky bottom-0 mt-auto border-t border-[#e8e8e6] bg-[#f6f6f6] p-4 md:hidden">
+          <button type="button" onClick={closeDrawer} className="w-full rounded-full bg-ink px-5 py-3 text-[13.5px] text-white">
+            Toon {results.length.toLocaleString("nl-BE")} wagens
+          </button>
+        </div>
       </div>
 
       <section ref={resultsRef} className="mt-8">
@@ -834,14 +933,14 @@ function Pill({ label, active, open, onClick }: { label: string; active: boolean
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center rounded-full border px-4 py-2.5 text-[13.5px] whitespace-nowrap ${
+      className={`inline-flex w-full items-center rounded-full border px-4 py-2.5 text-[13.5px] whitespace-nowrap md:w-auto ${
         active ? "border-ink bg-ink text-white" : open ? "border-ink bg-white text-ink" : "border-[#e3e3e3] bg-white text-[#3d3d3d]"
       }`}
     >
       {active && <span className="mr-1.5 text-[12px] text-[#2f9e5e]">✓</span>}
       {label}
       <svg
-        className={`ml-2 size-3.5 shrink-0 transition ${open ? "rotate-180" : ""}`}
+        className={`ml-auto size-3.5 shrink-0 transition md:ml-2 ${open ? "rotate-180" : ""}`}
         viewBox="0 0 16 16"
         fill="none"
         stroke="currentColor"

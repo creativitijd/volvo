@@ -17,8 +17,12 @@ export function SiteShell({ children, hero }: { children: ReactNode; hero?: Reac
           {hero}
         </div>
         <div className="flex items-center gap-2">
-          <CountrySwitch />
-          <AccountMenu />
+          <div className="max-md:hidden">
+            <CountrySwitch />
+          </div>
+          <div className="max-md:hidden">
+            <AccountMenu />
+          </div>
           <SiteMenu />
         </div>
       </header>
