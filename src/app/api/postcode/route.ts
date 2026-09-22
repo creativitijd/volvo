@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(pc)}&countrycodes=${nl ? "nl" : "be"}&format=json&limit=1&addressdetails=1`,
     {
-      headers: { "user-agent": "VindEenVolvo/0.1 (+https://vindeenvolvo.be)", "accept-language": "nl" },
+      headers: { "user-agent": "FindMyVolvo/0.1 (+https://findmyvolvo.eu)", "accept-language": "nl" },
       next: { revalidate: 60 * 60 * 24 * 30 },
     },
   );

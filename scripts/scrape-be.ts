@@ -11,7 +11,7 @@ import { withHistory } from "./history.ts";
 const BASE = "https://www.volvostock.be";
 const LIST_URL = `${BASE}/nl/vehicles/new`;
 const OUT = new URL("../data/volvo_be.json", import.meta.url);
-const USER_AGENT = "VindEenVolvoBot/0.1 (+https://vindeenvolvo.be)";
+const USER_AGENT = "FindMyVolvoBot/0.1 (+https://findmyvolvo.eu)";
 const DELAY_MS = 1200;
 const MAX_PAGES = 100;
 

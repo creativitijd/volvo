@@ -5,7 +5,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 const CACHE = new URL("../data/geo-cache.json", import.meta.url);
-const UA = "VindEenVolvoBot/0.1 (+https://vindeenvolvo.be)";
+const UA = "FindMyVolvoBot/0.1 (+https://findmyvolvo.eu)";
 
 let cache: Record<string, string | null> | null = null;
 let lastCall = 0;

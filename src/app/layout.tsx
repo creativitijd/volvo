@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+import { SITE } from "@/lib/site";
 import { AccountProvider } from "@/components/AccountProvider";
 
 const sans = Hanken_Grotesk({
@@ -16,6 +17,7 @@ const serif = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: "Vind een Volvo | Stockwagens en tweedehands Volvo's in België en Nederland",
   description:
     "Nieuwe Volvo's op stock, gecertificeerde Volvo Selekt-occasions en particuliere Volvo's in België en Nederland op één plek. Dagelijks bijgewerkt.",
