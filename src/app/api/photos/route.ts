@@ -41,7 +41,7 @@ export async function DELETE(request: Request) {
 
   const body = (await request.json().catch(() => null)) as { urls?: unknown } | null;
   const urls = Array.isArray(body?.urls) ? body.urls.filter((u): u is string => typeof u === "string") : [];
-  const keys = urls.map(photoKeyFromUrl).filter((key): key is string => Boolean(key) && key.startsWith(`${uid}/`));
+  const keys = urls.map(photoKeyFromUrl).filter((key): key is string => key !== null && key.startsWith(`${uid}/`));
 
   try {
     await Promise.all(keys.map((key) => removePhoto(key)));
