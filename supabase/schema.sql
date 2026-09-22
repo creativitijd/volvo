@@ -113,7 +113,7 @@ create table if not exists private_listings (
   status              text not null default 'pending'
                         check (status in ('pending', 'approved', 'rejected', 'sold')),
   data                jsonb not null,          -- PrivateAd uit src/lib/private.ts
-  photos              text[] not null default '{}',  -- publieke URL's in storage bucket "listing-photos"
+  photos              text[] not null default '{}',  -- publieke URL's in de Sevalla-bucket
   phone               text not null,
   reject_reason       text,
   created_at          timestamptz not null default now(),
@@ -222,15 +222,4 @@ end;
 $$;
 grant execute on function renew_private_listing(uuid) to authenticated;
 
--- Foto's: publiek leesbaar, uploaden enkel in je eigen map (<user_id>/...)
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('listing-photos', 'listing-photos', true, 5242880, array['image/jpeg', 'image/webp', 'image/png'])
-on conflict (id) do nothing;
-
-drop policy if exists "own photo upload" on storage.objects;
-create policy "own photo upload" on storage.objects for insert to authenticated
-  with check (bucket_id = 'listing-photos' and (storage.foldername(name))[1] = auth.uid()::text);
-
-drop policy if exists "own photo delete" on storage.objects;
-create policy "own photo delete" on storage.objects for delete to authenticated
-  using (bucket_id = 'listing-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+-- Foto's staan in een Sevalla object-storage bucket, niet in Supabase Storage.

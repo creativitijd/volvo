@@ -1,6 +1,6 @@
 {
   "name": "vind-een-volvo",
-  "version": "0.2.46",
+  "version": "0.2.47",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,7 @@
     "scrape:selekt-nl": "node scripts/scrape-selekt.ts --market=nl --concurrency=2"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1137.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "next": "16.3.5",
