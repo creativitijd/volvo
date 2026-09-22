@@ -1,0 +1,73 @@
+name: Scrape stock
+
+on:
+  schedule:
+    # Eén keer per dag, 06:07 UTC = 07:07 (winter) / 08:07 (zomer) Belgische tijd; meldingen gaan er meteen na uit
+    - cron: "7 6 * * *"
+  workflow_dispatch:
+
+# Nooit twee runs tegelijk (een trage run mag de volgende niet overlappen)
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+jobs:
+  volvostock-be:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: node scripts/scrape-be.ts
+
+  selekt-be:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      # Gebruikt de Chrome die op GitHub-runners voorgeïnstalleerd is.
+      # Verkochte wagens verdwijnen via de sitemap; --max bepaalt hoeveel bestaande wagens opnieuw nagekeken worden (prijs)
+      - run: node scripts/scrape-selekt.ts --market=be --max=250 --minutes=40
+
+  selekt-nl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: node scripts/scrape-selekt.ts --market=nl --max=700 --minutes=40 --concurrency=3
+
+  meldingen:
+    needs: [volvostock-be, selekt-be, selekt-nl]
+    if: ${{ always() }} # ook als één bron faalde, gaan de mails voor de andere uit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - name: E-mailmeldingen en verkopersmails
+        run: node scripts/send-alerts.ts
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      - name: Pagina verversen op Vercel
+        if: ${{ env.REVALIDATE_URL != '' }}
+        run: curl -fsS -X POST "$REVALIDATE_URL" -H "authorization: Bearer $REVALIDATE_SECRET"
+        env:
+          REVALIDATE_URL: ${{ secrets.REVALIDATE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
