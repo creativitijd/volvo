@@ -18,12 +18,6 @@ export function SiteShell({ children, hero }: { children: ReactNode; hero?: Reac
         </div>
         <div className="flex items-center gap-2">
           <CountrySwitch />
-          <Link
-            href="/verkopen"
-            className="hidden rounded-full px-[18px] py-2.5 text-[13.5px] text-[#3d3d3d] hover:bg-[#f2f2f2] md:block"
-          >
-            Verkoop je Volvo
-          </Link>
           <AccountMenu />
           <SiteMenu />
         </div>

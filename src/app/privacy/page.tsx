@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Privacy en cookies | Vind een Volvo"
 export default function PrivacyPage() {
   return (
     <SiteShell>
-      <Prose title="Privacy en cookies" intro="Versie van 22 september 2026.">
+      <Prose title="Privacy en cookies" justify intro="Versie van 22 september 2026.">
         <h2>Verantwoordelijke</h2>
         <p>
           {SITE.owner}, {SITE.address}, ondernemingsnummer {SITE.companyNumber}. Vragen over je gegevens:{" "}
@@ -48,9 +48,8 @@ export default function PrivacyPage() {
         <h2>Met wie delen we gegevens?</h2>
         <p>
           We verkopen geen gegevens. We gebruiken verwerkers die gegevens enkel voor ons opslaan of versturen: Supabase
-          (database, login en foto&apos;s), Vercel (hosting) en Resend (e-mail). [Vul de hostingregio&apos;s in en
-          controleer de verwerkersovereenkomsten.] Postcodes worden omgezet naar coördinaten via OpenStreetMap
-          Nominatim, zonder andere gegevens.
+          (database, login en foto&apos;s), Vercel (hosting) en Resend (e-mail). Postcodes worden omgezet naar coördinaten
+          via OpenStreetMap Nominatim, zonder andere gegevens.
         </p>
 
         <h2>Cookies</h2>

@@ -79,49 +79,54 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
     ["VIN", car.vin],
   ];
 
+  const subtitle = [car.color, car.interior].filter(Boolean).join(" · ");
+
   return (
     <SiteShell>
-      <nav className="pb-4 pt-2 text-sm text-muted" aria-label="Kruimelpad">
+      <nav className="mb-5 text-[13.5px] text-muted" aria-label="Kruimelpad">
         <Link href={country === "NL" ? "/?land=nl" : "/"} className="hover:text-ink">
           Alle wagens
         </Link>
-        {" / "}
+        <span className="mx-2 text-[#c4c4c4]">/</span>
         <Link href={`/modellen/${modelSlug(car.model)}`} className="hover:text-ink">
           {car.model}
         </Link>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-        <Gallery images={car.images} alt={`${car.model} in ${car.color ?? ""}`} studio={!used} />
+      <div className="grid items-start gap-8 lg:grid-cols-[1.45fr_1fr]">
+        <Gallery
+          images={car.images}
+          alt={`${car.model} in ${car.color ?? ""}`}
+          studio={!used}
+          badge={
+            <div className="flex flex-wrap gap-1.5">
+              <SourceBadge source={car.source} />
+              {car.reserved && (
+                <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black">GERESERVEERD</span>
+              )}
+            </div>
+          }
+        />
 
         <aside className="grid content-start gap-5">
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <SourceBadge source={car.source} />
-              {car.reserved && (
-                <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-semibold text-black">GERESERVEERD</span>
-              )}
-            </div>
-            <h1 className="mt-3 text-3xl font-medium tracking-tight">
+            <h1 className="font-serif text-[34px] leading-tight font-light tracking-tight">
               {car.model} {car.trim}
             </h1>
-            <p className="text-muted">
-              {[used ? (regYear ?? car.modelYear) : car.modelYear, used && car.mileageKm != null && `${car.mileageKm.toLocaleString("nl-BE")} km`, car.powertrain]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
+            {subtitle && <p className="mt-1 text-[13.5px] text-muted">{subtitle}</p>}
           </div>
 
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-4xl font-semibold tracking-tight tabular-nums">{formatEuro(car.price)}</p>
-              {saving > 0 && (
-                <p className="mt-1 text-sm text-muted">
-                  <span className="line-through">{formatEuro(car.listPrice!)}</span>{" "}
-                  <span className="font-semibold text-save">Bespaar {formatEuro(saving)}</span>
-                </p>
-              )}
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex items-baseline gap-3">
+              <p className="font-serif text-[40px] leading-none font-normal">{formatEuro(car.price)}</p>
+              {saving > 0 && <span className="text-[13px] text-[#9a9a9a] line-through">{formatEuro(car.listPrice!)}</span>}
             </div>
+            {saving > 0 && (
+              <span className="rounded-[5px] bg-save-bg px-2.5 py-1 text-xs font-semibold text-save">−{formatEuro(saving)}</span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
             <FavoriteButton card={toCard(car, deal)} />
           </div>
 
@@ -131,41 +136,31 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
             href={car.url}
             target="_blank"
             rel="noopener"
-            className="flex items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 font-medium text-bg transition hover:opacity-85"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-mark px-6 py-3.5 text-center text-[14.5px] font-medium text-ink transition hover:bg-[#e8c52e]"
           >
-            Bekijk bij {car.dealer?.name ?? "de verdeler"} op {SOURCE_NAME[car.source] ?? "de site van de verkoper"}
-            <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-              <path d="M6 3.5H3.5v9h9V10M9 3.5h3.5V7M12.5 3.5 7 9" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            Bekijk bij {car.dealer?.name ?? "de verdeler"}
+            <span aria-hidden>↗</span>
           </a>
+          <p className="-mt-2 text-[12.5px] text-muted">Opent {SOURCE_NAME[car.source] ?? "de site van de verkoper"}</p>
 
-          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-2xl bg-surface p-5 text-sm">
-            {specs
-              .filter(([, v]) => v)
-              .map(([k, v]) => (
-                <div key={k} className="contents">
-                  <dt className="text-muted">{k}</dt>
-                  <dd className="break-words">{v}</dd>
-                </div>
-              ))}
-          </dl>
+          <SpecGrid specs={specs} />
         </aside>
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl bg-surface p-5">
-          <h2 className="text-lg font-medium">Prijsverloop</h2>
-          <p className="mb-3 text-sm text-muted">
+      <div className="mt-8 grid gap-5 lg:grid-cols-2">
+        <section className="rounded-3xl bg-[#f6f6f6] p-6 sm:p-8">
+          <h2 className="font-serif text-[26px] font-light tracking-tight">Prijsverloop</h2>
+          <p className="mt-2 mb-4 text-[13.5px] text-muted">
             {atDealerSince != null && atDealerSince > 0 && `Bij de verdeler sinds ${atDealerSince} dagen · `}
             Door ons gevolgd sinds {followedSince <= 0 ? "vandaag" : `${followedSince} ${followedSince === 1 ? "dag" : "dagen"}`}
           </p>
           <PriceChart history={history} now={now} />
         </section>
 
-        <section className="rounded-2xl bg-surface p-5">
-          <h2 className="mb-3 text-lg font-medium">Verkoper</h2>
-          <p className="font-medium">{car.dealer?.name}</p>
-          <p className="text-sm text-muted">
+        <section className="rounded-3xl bg-[#f6f6f6] p-6 sm:p-8">
+          <h2 className="font-serif text-[26px] font-light tracking-tight">Verkoper</h2>
+          <p className="mt-3 font-medium">{car.dealer?.name}</p>
+          <p className="text-[13.5px] text-muted">
             {[car.dealer?.street, [car.dealer?.zip, car.dealer?.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
             {car.dealer?.province && ` · ${car.dealer.province}`}
           </p>
@@ -174,17 +169,17 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
               href={`https://www.google.com/maps/search/?api=1&query=${car.dealer.lat},${car.dealer.lon}`}
               target="_blank"
               rel="noopener"
-              className="mt-3 inline-block text-sm underline underline-offset-4"
+              className="mt-3 inline-block text-[13.5px] underline underline-offset-4"
             >
               Toon op kaart
             </a>
           )}
           {(car.options.length > 0 || car.packs.length > 0) && (
             <>
-              <h3 className="mb-2 mt-5 text-sm font-semibold">Pakketten en opties</h3>
+              <h3 className="mt-6 mb-2.5 text-sm font-medium">Pakketten en opties</h3>
               <ul className="flex flex-wrap gap-1.5">
                 {[...car.packs, ...car.options].slice(0, 30).map((o) => (
-                  <li key={o} className="rounded-md bg-surface-2 px-2.5 py-1 text-xs">
+                  <li key={o} className="rounded-full bg-white px-3 py-1.5 text-xs">
                     {o}
                   </li>
                 ))}
@@ -195,9 +190,9 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
       </div>
 
       {similar.length > 0 && (
-        <section className="mt-12">
-          <h2 className="mb-4 text-xl font-medium">Vergelijkbare {car.model}&apos;s</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mt-14">
+          <h2 className="font-serif mb-5 text-[28px] font-light tracking-tight">Vergelijkbare {car.model}&apos;s</h2>
+          <div className="grid gap-[22px] [grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))]">
             {similar.map((s) => (
               <ListingCard key={s.id} card={toCard(s, market.deals.get(s.id))} isNew={false} distance={null} />
             ))}
@@ -208,20 +203,34 @@ export default async function CarPage(props: PageProps<"/wagen/[slug]">) {
   );
 }
 
+function SpecGrid({ specs }: { specs: [string, string | null | undefined][] }) {
+  const rows = specs.filter(([, v]) => v);
+  return (
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-3xl bg-[#f6f6f6] p-5 sm:grid-cols-3">
+      {rows.map(([k, v]) => (
+        <div key={k} className="min-w-0">
+          <dt className="text-[10px] tracking-[0.07em] text-[#a8a8a8] uppercase">{k}</dt>
+          <dd className="mt-1 text-sm break-words">{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function DealBox({ deal, car }: { deal: Deal; car: Listing }) {
   const tone =
     deal.label === "scherp" || deal.label === "goed"
-      ? "border-save/30 bg-save-bg text-save"
+      ? "bg-save-bg text-save"
       : deal.label === "hoog"
-        ? "border-amber-500/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-        : "border-line bg-surface text-ink";
+        ? "bg-[#fff6e8] text-[#8a5a00]"
+        : "bg-[#f6f6f6] text-ink";
   const pct = Math.abs(Math.round(deal.diff));
   const text =
     deal.kind === "used"
       ? `Wij verwachten ongeveer ${formatEuro(deal.reference)} voor een ${car.model} van deze leeftijd, kilometerstand en dit vermogen. Deze wagen is ${pct}% ${deal.diff < 0 ? "goedkoper" : "duurder"}.`
       : `De typische prijs voor een ${car.model} ${car.powertrain ?? ""} ${car.trim?.split(" ")[0] ?? ""} op stock is ${formatEuro(deal.reference)}. Deze wagen is ${pct}% ${deal.diff < 0 ? "goedkoper" : "duurder"}.`;
   return (
-    <div className={`rounded-2xl border p-4 ${tone}`}>
+    <div className={`rounded-3xl p-5 ${tone}`}>
       <p className="font-semibold">{DEAL_TEXT[deal.label]}</p>
       <p className="mt-1 text-sm opacity-90">{text}</p>
       <p className="mt-2 text-xs opacity-70">Vergeleken met {deal.peers} vergelijkbare wagens. Een indicatie, geen garantie.</p>

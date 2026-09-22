@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { summarize, type Card } from "@/lib/card";
 import { modelSlug } from "@/lib/stats";
 import {
@@ -21,6 +21,7 @@ import { DistributionRange } from "./DistributionRange";
 import { UpdatedAgo } from "./UpdatedAgo";
 import { LocationForm, type Place } from "./LocationForm";
 import { useAccount } from "./AccountProvider";
+import { HeartIcon } from "./AccountMenu";
 import {
   EMPTY_CRITERIA,
   fromSearchParams,
@@ -64,16 +65,6 @@ const SORTS = {
   newest: "Nieuwst binnen",
 } as const;
 type SortKey = keyof typeof SORTS;
-
-const SORT_SUB: Record<SortKey, string> = {
-  "price-asc": "Gesorteerd op laagste prijs",
-  "price-desc": "Gesorteerd op hoogste prijs",
-  "km-asc": "Gesorteerd op laagste kilometerstand",
-  "year-desc": "Gesorteerd op nieuwste bouwjaar",
-  distance: "Gesorteerd op afstand",
-  discount: "Gesorteerd op grootste korting",
-  newest: "Gesorteerd op nieuwst binnen",
-};
 
 type Filters = Criteria & { sort: SortKey };
 type Panel = "model" | "budget" | "km" | "year" | "fuel" | "drive" | "trim" | "motor" | "packs" | "color" | "place" | "offer" | null;
@@ -122,16 +113,27 @@ function carYear(c: Card) {
 }
 
 export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedAt: number }) {
-  const { favorites } = useAccount();
+  const { favorites, user, ready, requireLogin } = useAccount();
+  const resultsRef = useRef<HTMLElement>(null);
   const [f, setF] = useState<Filters>(EMPTY);
   const [shown, setShown] = useState(PAGE);
   const [here, setHere] = useState<Place | null>(null);
   const [askLocation, setAskLocation] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
+  const [onlySaved, setOnlySaved] = useState(false);
   const [now, setNow] = useState(0);
 
   const cards = useMemo(() => allCards.filter((c) => c.country === f.country), [allCards, f.country]);
   const models = useMemo(() => summarize(cards), [cards]);
+
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPanel(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [panel]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -185,6 +187,11 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
     };
     return list.sort((a, b) => Number(a.reserved) - Number(b.reserved) || cmp[f.sort](a, b));
   }, [base, f, here]);
+
+  const listed = useMemo(
+    () => (onlySaved ? results.filter((c) => favorites.has(c.id)) : results),
+    [results, onlySaved, favorites],
+  );
 
   const reservedCount = base.filter((c) => c.reserved).length;
   const provinceOrder = f.country === "NL" ? NL_PROVINCES : PROVINCES;
@@ -286,7 +293,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
 
   return (
     <div>
-      <div className="overflow-hidden rounded-3xl bg-[#f6f6f6]">
+      <div className="sticky top-3 z-30 overflow-hidden rounded-3xl bg-[#f6f6f6]">
         <div className="flex flex-wrap items-center gap-2 px-4 py-4 sm:px-5">
           <Pill label={f.model ?? "Model"} active={Boolean(f.model)} open={panel === "model"} onClick={() => togglePanel("model")} />
           <Pill
@@ -339,34 +346,23 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
           {(f.packs.length > 0 || panel === "packs") && (
             <Pill label={f.packs.length ? `${f.packs.length} pakketten` : "Pakketten"} active={f.packs.length > 0} open={panel === "packs"} onClick={() => togglePanel("packs")} />
           )}
-          <div className="min-w-2 flex-1" />
-          <label className="relative">
-            <span className="sr-only">Sorteren</span>
-            <select
-              value={f.sort}
-              onChange={(e) => {
-                const v = e.target.value as SortKey;
-                if (v === "distance" && !here) {
-                  setAskLocation(true);
-                  setPanel("place");
-                } else set("sort", v);
-              }}
-              className="appearance-none rounded-full border border-[#e3e3e3] bg-white py-2.5 pr-9 pl-3.5 text-[13.5px]"
-            >
-              {Object.entries(SORTS).map(([k, label]) => (
-                <option key={k} value={k}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <svg className="pointer-events-none absolute top-1/2 right-3 size-3 -translate-y-1/2 text-muted" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <path d="M3 4.5 6 7.5 9 4.5" />
-            </svg>
-          </label>
+          <button
+            type="button"
+            aria-pressed={onlySaved}
+            aria-label={onlySaved ? "Alle wagens tonen" : "Toon alleen bewaarde auto's"}
+            onClick={() => {
+              setOnlySaved((v) => !v);
+              setShown(PAGE);
+            }}
+            className={`ml-auto inline-flex items-center gap-1.5 rounded-full border border-[#d8232a] px-3 py-2.5 text-[#d8232a] ${onlySaved ? "bg-[#fff6f6]" : "bg-white hover:bg-[#fff6f6]"}`}
+          >
+            <HeartIcon filled={onlySaved || favorites.size > 0} className="size-4" />
+            <span className="rounded-full bg-[#d8232a] px-1.5 py-0.5 text-[11px] font-medium text-white">{favorites.size}</span>
+          </button>
         </div>
 
         {panel && (
-          <div className="border-t border-[#e8e8e6] px-4 py-5 sm:px-5">
+          <div className="border-t border-[#e8e8e6] px-4 py-3 sm:px-5">
             {panel === "model" && (
               <ModelPicker
                 models={fuelModels}
@@ -576,24 +572,25 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
                     {f.hideReserved ? "Gereserveerde verborgen" : `Verberg gereserveerde (${reservedCount})`}
                   </button>
                 )}
-                {countBy(cards, (c) => c.powertrain).length > 0 && (
-                  <button type="button" onClick={() => setPanel("motor")} className="w-fit text-[13px] text-muted underline">
-                    Filter op motor
-                  </button>
-                )}
-                <button type="button" onClick={() => setPanel("packs")} className="w-fit text-[13px] text-muted underline">
-                  Filter op pakketten
-                </button>
               </div>
             )}
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#eee] pt-4">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#eee] pt-3">
               <button type="button" onClick={clearAll} className="text-[13.5px] text-[#787878] underline">
                 Wis alle filters
               </button>
-              <button type="button" onClick={() => setPanel(null)} className="rounded-full bg-ink px-6 py-3 text-sm text-white hover:bg-black">
-                Toon {results.length.toLocaleString("nl-BE")} wagens
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPanel(null)}
+                  className="rounded-full border border-[#d9d9d9] bg-white px-4 py-2 text-[13px] text-ink hover:bg-[#f2f2f2]"
+                >
+                  Sluiten
+                </button>
+                <button type="button" onClick={() => setPanel(null)} className="rounded-full bg-ink px-5 py-2 text-[13px] text-white hover:bg-black">
+                  Toon {results.length.toLocaleString("nl-BE")} wagens
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -618,74 +615,150 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
         )}
       </div>
 
-      <section className="mt-8">
+      <section ref={resultsRef} className="mt-8">
+        {onlySaved && (
+          <button
+            type="button"
+            onClick={() => {
+              setOnlySaved(false);
+              setShown(PAGE);
+            }}
+            className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[13.5px] text-white hover:bg-black"
+          >
+            <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+              <path d="M10 3.5 5.5 8 10 12.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Alle auto's
+          </button>
+        )}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-[28px] font-light tracking-tight">
-              {results.length.toLocaleString("nl-BE")} {results.length === 1 ? "wagen" : "wagens"}
+              {listed.length.toLocaleString("nl-BE")} {listed.length === 1 ? "wagen" : "wagens"}
             </h2>
             <p className="mt-1 text-[13.5px] text-muted">
-              {SORT_SUB[f.sort]}
               {f.sort === "distance" && here && (
                 <>
-                  {" vanaf "}
+                  Vanaf{" "}
                   <button type="button" onClick={() => setPanel("place")} className="underline">
                     {here.label}
                   </button>
+                  {" · "}
                 </>
               )}
               {f.model && (
                 <>
-                  {" · "}
                   <Link href={`/modellen/${modelSlug(f.model)}`} className="underline underline-offset-4">
                     alles over de {f.model}
                   </Link>
+                  {" · "}
                 </>
               )}
-              {" · bijgewerkt "}
-              <UpdatedAgo at={updatedAt} />
+              bijgewerkt <UpdatedAgo at={updatedAt} />
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link href="/favorieten" className="rounded-full border border-[#e3e3e3] bg-white px-[18px] py-2.5 text-[13.5px] hover:border-ink">
-              ♡ Bewaard {favorites.size}
-            </Link>
-            <SaveSearch criteria={f} label="Mail me nieuwe matches" />
+            <label className="inline-flex items-center gap-2 text-[13.5px] text-[#3d3d3d]">
+              <span>Sorteren</span>
+              <span className="relative">
+                <select
+                  value={f.sort}
+                  onChange={(e) => {
+                    const v = e.target.value as SortKey;
+                    if (v === "distance" && !here) {
+                      setAskLocation(true);
+                      setPanel("place");
+                    } else set("sort", v);
+                  }}
+                  className="appearance-none rounded-full border border-[#e3e3e3] bg-white py-2.5 pr-9 pl-3.5 text-[13.5px] text-ink"
+                >
+                  {Object.entries(SORTS).map(([k, label]) => (
+                    <option key={k} value={k}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-ink" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                  <path d="M4 6.5 8 10.5 12 6.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </label>
           </div>
         </div>
 
-        {results.length === 0 ? (
-          <div className="rounded-[20px] bg-[#f6f6f6] px-10 py-16 text-center">
-            <div className="font-serif text-2xl font-light">Geen wagens met deze filters</div>
-            <p className="mt-2 text-sm text-muted">Verruim je budget, bouwjaar of kilometerstand.</p>
-            <button type="button" onClick={clearAll} className="mt-6 rounded-full bg-ink px-6 py-3 text-sm text-white">
-              Wis alle filters
-            </button>
-          </div>
+        {listed.length === 0 ? (
+          onlySaved && ready && !user ? (
+            <SavedAccountPrompt onAccount={() => requireLogin("Maak een account om je bewaarde auto's op te slaan.")} onShowAll={() => setOnlySaved(false)} />
+          ) : (
+            <div className="rounded-[20px] bg-[#f6f6f6] px-10 py-16 text-center">
+              <div className="font-serif text-2xl font-light">{onlySaved ? "Geen bewaarde wagens in deze selectie" : "Geen wagens met deze filters"}</div>
+              <p className="mt-2 text-sm text-muted">{onlySaved ? "Bewaar een auto met het hartje, of zet de filter uit." : "Verruim je budget, bouwjaar of kilometerstand."}</p>
+              <button type="button" onClick={onlySaved ? () => setOnlySaved(false) : clearAll} className="mt-6 rounded-full bg-ink px-6 py-3 text-sm text-white">
+                {onlySaved ? "Toon alle wagens" : "Wis alle filters"}
+              </button>
+            </div>
+          )
         ) : (
-          <div className="grid gap-[22px] [grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))]">
-            {results.slice(0, shown).map((c) => (
-              <ListingCard
-                key={c.id}
-                card={c}
-                isNew={isNew(c)}
-                distance={here && c.lat != null && c.lon != null ? distanceKm(here, { lat: c.lat, lon: c.lon }) : null}
-              />
-            ))}
-          </div>
+          <>
+            {onlySaved && ready && !user && (
+              <div className="mb-6 flex flex-col gap-4 rounded-[20px] bg-mark px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[18px] font-semibold tracking-tight">Maak een account om deze selectie op te slaan</p>
+                  <p className="mt-1 max-w-xl text-[14px] leading-relaxed text-[#3d3d3d]">
+                    {listed.length === 1 ? "Deze auto staat" : "Deze auto's staan"} hier omdat je op het hartje klikte.
+                    <br />
+                    Zonder account wordt de selectie niet bewaard.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => requireLogin("Maak een account om je bewaarde auto's op te slaan.")}
+                  className="w-fit shrink-0 rounded-full bg-ink px-5 py-2.5 text-[13.5px] text-white hover:bg-black"
+                >
+                  Account maken
+                </button>
+              </div>
+            )}
+            <div
+              className={
+                onlySaved
+                  ? "grid grid-cols-1 gap-[22px] sm:grid-cols-2 xl:grid-cols-4"
+                  : "grid gap-[22px] [grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))]"
+              }
+            >
+              {(onlySaved ? listed.slice(0, shown) : withSellCard(listed.slice(0, shown))).map((item) =>
+                item === "sell" ? (
+                  <SellCard key="sell" />
+                ) : (
+                  <ListingCard
+                    key={item.id}
+                    card={item}
+                    isNew={isNew(item)}
+                    distance={here && item.lat != null && item.lon != null ? distanceKm(here, { lat: item.lat, lon: item.lon }) : null}
+                    onSaved={() => {
+                      setOnlySaved(true);
+                      setShown(PAGE);
+                      setPanel(null);
+                      requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                    }}
+                  />
+                ),
+              )}
+            </div>
+          </>
         )}
 
-        {shown < results.length && (
+        {shown < listed.length && (
           <div className="mx-auto mt-9 flex max-w-md flex-col items-center gap-3.5">
             <div className="text-[12.5px] text-muted">
-              {shown} van {results.length.toLocaleString("nl-BE")} getoond
+              {shown} van {listed.length.toLocaleString("nl-BE")} getoond
             </div>
             <button
               type="button"
               onClick={() => setShown((n) => n + PAGE)}
               className="rounded-full border border-ink px-8 py-3 text-sm hover:bg-ink hover:text-white"
             >
-              Toon {Math.min(PAGE, results.length - shown)} meer
+              Toon {Math.min(PAGE, listed.length - shown)} meer
             </button>
           </div>
         )}
@@ -696,7 +769,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
           <div className="max-w-lg">
             <h2 className="font-serif text-[30px] font-light tracking-tight">Nog niet gevonden wat je zoekt?</h2>
             <p className="mt-3 text-[15px] leading-relaxed text-[#4a4a4a]">
-              Bewaar je filters en krijg een mail zodra er een match binnenkomt. Of zoek verder bij andere aanbieders.
+              Bewaar je filters en krijg een mail zodra er een match binnenkomt.
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">
@@ -705,7 +778,54 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
           </div>
         </div>
       </section>
+      {chips.length > 0 && <SaveSearch criteria={f} label="Mail bij deze zoekopdracht" variant="float" />}
     </div>
+  );
+}
+
+function SavedAccountPrompt({ onAccount, onShowAll }: { onAccount: () => void; onShowAll: () => void }) {
+  return (
+    <div className="rounded-[20px] bg-[#f6f6f6] px-8 py-14 text-center">
+      <div className="font-serif text-[28px] font-light tracking-tight">Maak een account om je selectie op te slaan</div>
+      <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-[#3d3d3d]">
+        Klik op het hartje bij een auto. Die komt hier te staan. Zonder account wordt die selectie niet bewaard.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={onAccount} className="rounded-full bg-ink px-6 py-3 text-sm text-white hover:bg-black">
+          Account maken
+        </button>
+        <button type="button" onClick={onShowAll} className="rounded-full border border-[#d9d9d9] bg-white px-6 py-3 text-sm text-ink hover:bg-[#f2f2f2]">
+          Toon alle wagens
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function withSellCard(cars: Card[]): (Card | "sell")[] {
+  const at = Math.min(3, cars.length);
+  return [...cars.slice(0, at), "sell", ...cars.slice(at)];
+}
+
+function SellCard() {
+  return (
+    <Link
+      href="/verkopen"
+      className="group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-[#e9e9e9] bg-[#f6f6f6] p-6 transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(23,26,24,0.11)]"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/models/xc60-card.png" alt="" className="pointer-events-none absolute right-0 -bottom-1 w-[80%] max-w-none opacity-40" />
+      <span className="relative z-10 grid size-12 place-items-center rounded-full bg-mark text-ink">
+        <span className="-translate-y-[3px] text-[28px] leading-none font-light">+</span>
+      </span>
+      <div className="relative z-10 mt-8 max-w-[15rem]">
+        <p className="text-[22px] leading-snug font-semibold tracking-tight">Verkoop je Volvo</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#4a4a4a]">Zet je auto gratis tussen dit aanbod.</p>
+      </div>
+      <span className="relative z-10 mt-auto w-fit rounded-full bg-mark px-4 py-2.5 text-[13.5px] font-medium text-ink group-hover:bg-[#e8c52e]">
+        Auto toevoegen
+      </span>
+    </Link>
   );
 }
 
@@ -720,7 +840,16 @@ function Pill({ label, active, open, onClick }: { label: string; active: boolean
     >
       {active && <span className="mr-1.5 text-[12px] text-[#2f9e5e]">✓</span>}
       {label}
-      <span className="ml-1.5 text-[10px] opacity-40">▾</span>
+      <svg
+        className={`ml-2 size-3.5 shrink-0 transition ${open ? "rotate-180" : ""}`}
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        aria-hidden
+      >
+        <path d="M4 6.5 8 10.5 12 6.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </button>
   );
 }
@@ -728,7 +857,7 @@ function Pill({ label, active, open, onClick }: { label: string; active: boolean
 function OptionBlock({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-3 text-sm font-medium">{title}</div>
+      <div className="mb-2 text-sm font-medium">{title}</div>
       <div className="flex max-h-52 flex-wrap gap-1.5 overflow-y-auto">{children}</div>
     </div>
   );

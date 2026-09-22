@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Gebruiksvoorwaarden | Vind een Volvo
 export default function TermsPage() {
   return (
     <SiteShell>
-      <Prose title="Gebruiksvoorwaarden" intro="Versie van 22 september 2026.">
+      <Prose title="Gebruiksvoorwaarden" justify intro="Versie van 22 september 2026.">
         <h2>1. Wie zijn we?</h2>
         <p>
           {SITE.name} ({SITE.url}) wordt uitgebaat door {SITE.owner}, {SITE.address}, ondernemingsnummer{" "}

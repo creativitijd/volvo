@@ -11,10 +11,12 @@ export function ListingCard({
   card: c,
   isNew,
   distance,
+  onSaved,
 }: {
   card: Card;
   isNew: boolean;
   distance: number | null;
+  onSaved?: () => void;
 }) {
   const { favorites, toggleFavorite } = useAccount();
   const liked = favorites.has(c.id);
@@ -99,7 +101,10 @@ export function ListingCard({
       </Link>
       <button
         type="button"
-        onClick={() => toggleFavorite(c)}
+        onClick={() => {
+          if (!liked) onSaved?.();
+          void toggleFavorite(c);
+        }}
         aria-pressed={liked}
         aria-label={liked ? "Verwijder uit favorieten" : "Bewaar als favoriet"}
         className={`absolute top-3 right-3 grid size-10 place-items-center rounded-full bg-white shadow-[0_2px_6px_rgba(23,26,24,0.14)] transition hover:scale-105 ${

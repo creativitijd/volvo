@@ -14,6 +14,7 @@ export default function AboutPage() {
     <SiteShell>
       <Prose
         title="Over Vind een Volvo"
+        justify
         intro="Eén plek om elke Volvo te vinden die in België en Nederland te koop staat, met eerlijke informatie over de prijs."
       >
         <h2>Waarom deze site?</h2>

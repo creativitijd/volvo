@@ -22,8 +22,9 @@ export function AccountMenu() {
     return (
       <button
         onClick={() => requireLogin()}
-        className="rounded-full bg-ink px-5 py-2.5 text-[13.5px] text-white transition hover:bg-black"
+        className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[13.5px] text-white transition hover:bg-black"
       >
+        <UserIcon />
         Inloggen
       </button>
     );
@@ -87,6 +88,15 @@ function MenuLink({ href, onClick, children }: { href: string; onClick: () => vo
     <Link href={href} onClick={onClick} className="block rounded-lg px-3 py-2 hover:bg-surface-2">
       {children}
     </Link>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg className="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <circle cx="10" cy="7" r="3" />
+      <path d="M4.5 16.5a5.5 5.5 0 0 1 11 0" strokeLinecap="round" />
+    </svg>
   );
 }
 

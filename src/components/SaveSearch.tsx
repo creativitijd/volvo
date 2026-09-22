@@ -16,7 +16,7 @@ export function SaveSearch({
 }: {
   criteria: Criteria;
   label?: string;
-  variant?: "outline" | "solid";
+  variant?: "outline" | "solid" | "float";
 }) {
   const { user, requireLogin } = useAccount();
   const [open, setOpen] = useState(false);
@@ -50,13 +50,19 @@ export function SaveSearch({
   return (
     <>
       <button
+        type="button"
         onClick={start}
+        aria-label={label}
+        title={variant === "float" ? label : undefined}
         className={
-          variant === "solid"
-            ? "rounded-full bg-ink px-6 py-3.5 text-[14.5px] text-white transition hover:bg-black"
-            : "rounded-full border border-[#e3e3e3] bg-white px-[18px] py-2.5 text-[13.5px] whitespace-nowrap transition hover:border-ink"
+          variant === "float"
+            ? "fixed right-5 bottom-5 z-40 inline-flex items-center gap-2 rounded-full bg-ink py-3 pr-5 pl-4 text-[14px] text-white shadow-[0_10px_28px_rgba(23,26,24,0.22)] transition hover:bg-black"
+            : variant === "solid"
+              ? "inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[14.5px] text-white transition hover:bg-black"
+              : "inline-flex items-center gap-2 rounded-full border border-[#e3e3e3] bg-white px-[18px] py-2.5 text-[13.5px] whitespace-nowrap transition hover:border-ink"
         }
       >
+        <MailIcon className={variant === "float" ? "size-5" : "size-4"} />
         {label}
       </button>
 
@@ -129,5 +135,14 @@ export function SaveSearch({
         </Modal>
       )}
     </>
+  );
+}
+
+function MailIcon({ className = "size-4" }: { className?: string }) {
+  return (
+    <svg className={`${className} shrink-0`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+      <rect x="2.5" y="4.5" width="15" height="11" rx="1.5" />
+      <path d="m3.5 6 6.5 5 6.5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

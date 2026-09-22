@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const ITEMS = [
+  ["/", "Bekijk alle auto's"],
   ["/modellen", "Alle modellen"],
   ["/over", "Over Vind een Volvo"],
   ["/verkopen", "Verkoop je Volvo"],
@@ -34,11 +35,11 @@ export function SiteMenu() {
         onClick={() => setOpen(true)}
         className="grid size-[42px] place-items-center rounded-full border border-[#e3e3e3] bg-white hover:bg-[#f2f2f2]"
       >
-        <span className="flex flex-col gap-1" aria-hidden>
-          <span className="block h-[1.6px] w-[17px] rounded-sm bg-ink" />
-          <span className="block h-[1.6px] w-[17px] rounded-sm bg-ink" />
-          <span className="block h-[1.6px] w-[17px] rounded-sm bg-ink" />
-        </span>
+        <svg className="text-ink" width="18" height="14" viewBox="0 0 18 14" fill="currentColor" aria-hidden>
+          <rect width="18" height="2" y="0" rx="1" />
+          <rect width="18" height="2" y="6" rx="1" />
+          <rect width="18" height="2" y="12" rx="1" />
+        </svg>
       </button>
       <div
         onClick={() => setOpen(false)}

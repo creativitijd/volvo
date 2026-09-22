@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getMarket } from "@/lib/listings";
-import { formatEuro } from "@/lib/format";
 import { allModels, modelSlug } from "@/lib/stats";
 import { SiteShell } from "@/components/SiteShell";
+import { modelIconSrc, sortModels } from "@/components/ModelPicker";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -13,32 +13,53 @@ export const metadata: Metadata = {
 
 export default async function ModelsPage() {
   const { snapshot } = await getMarket();
-  const models = allModels(snapshot.listings);
+  const models = sortModels(allModels(snapshot.listings));
+  const count = models.length.toLocaleString("nl-BE");
+  const rows = new Map<number, typeof models>();
+  for (const model of models) {
+    const number = Number(model.model.match(/\d+/)?.[0] ?? 0);
+    rows.set(number, [...(rows.get(number) ?? []), model]);
+  }
+
+  const hero = (
+    <p className="font-serif mt-6 max-w-[760px] text-[22px] leading-snug font-light tracking-tight text-[#3d3d3d] sm:text-[23px]">
+      Alle{" "}
+      <span className="font-sans inline-block translate-y-[-1px] rounded-full bg-mark px-3 py-0.5 align-middle text-[18px] font-semibold text-ink sm:text-[19px]">
+        {count}
+      </span>{" "}
+      Volvo-modellen in België en Nederland.
+      <br />
+      Kies een model voor prijzen, aantallen en de beste deals.
+    </p>
+  );
+
   return (
-    <SiteShell>
-      <h1 className="pt-6 text-4xl font-medium tracking-tight">Alle modellen</h1>
-      <p className="pb-8 pt-2 text-muted">Kies een model voor prijzen, aantallen en de beste deals op dit moment.</p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {models.map((m) => (
-          <Link
-            key={m.model}
-            href={`/modellen/${modelSlug(m.model)}`}
-            className="group overflow-hidden rounded-xl border border-line bg-surface transition hover:border-muted hover:shadow-sm"
-          >
-            <div className="aspect-[16/9] overflow-hidden bg-tile">
-              {m.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.image} alt="" loading="lazy" className="size-full object-cover transition duration-500 group-hover:scale-[1.04]" />
-              )}
+    <SiteShell hero={hero}>
+      <h1 className="sr-only">Alle Volvo-modellen te koop</h1>
+      <div className="overflow-hidden rounded-3xl bg-[#f6f6f6] p-4 sm:p-5">
+        <div className="grid gap-5">
+          {[...rows.entries()].map(([number, group]) => (
+            <div key={number}>
+              <p className="mb-2 font-serif text-[22px] leading-none font-light tracking-tight text-[#3d3d3d]">{number}</p>
+              <div className="flex gap-2 overflow-x-auto">
+                {group.map((m) => (
+                  <Link
+                    key={m.model}
+                    href={`/modellen/${modelSlug(m.model)}`}
+                    className="w-[148px] shrink-0 overflow-hidden rounded-xl border border-[#ececeb] bg-white text-left transition hover:border-ink"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={modelIconSrc(m.model)} alt="" className="mx-auto mt-2 h-[78px] w-[76%] object-contain" />
+                    <div className="flex items-center justify-between gap-1.5 px-2.5 pt-1 pb-2.5">
+                      <span className="truncate text-[13.5px] font-semibold">{m.model.replace(" Cross Country", " CC")}</span>
+                      <span className="shrink-0 rounded-full bg-mark px-1.5 py-0.5 text-[11px] font-medium text-ink">{m.count}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="p-3">
-              <p className="font-medium">{m.model}</p>
-              <p className="text-xs text-muted">
-                {m.count} te koop · vanaf {formatEuro(m.minPrice)}
-              </p>
-            </div>
-          </Link>
-        ))}
+          ))}
+        </div>
       </div>
     </SiteShell>
   );

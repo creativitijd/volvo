@@ -11,7 +11,7 @@ export function FavoriteButton({ card }: { card: Card }) {
     <button
       onClick={() => toggleFavorite(card)}
       aria-pressed={liked}
-      className={`flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-ink ${liked ? "text-red-500" : ""}`}
+      className={`inline-flex items-center gap-2 rounded-full border px-[18px] py-2.5 text-[13.5px] ${liked ? "border-ink text-[#d8232a]" : "border-[#e3e3e3] hover:border-ink"}`}
     >
       <HeartIcon filled={liked} className="size-[18px]" />
       {liked ? "Bewaard" : "Bewaar"}

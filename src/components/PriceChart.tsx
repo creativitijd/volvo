@@ -6,7 +6,7 @@ export function PriceChart({ history, now }: { history: [number, number][]; now:
   // Zonder prijswijziging is een grafiek nietszeggend: gewoon de tekst
   if (history.length < 2) {
     return (
-      <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm">
+      <p className="rounded-2xl bg-white px-4 py-3 text-sm">
         Prijs ongewijzigd ({formatEuro(history[0][1])}) sinds {date(history[0][0])}. Daalt de prijs, dan zie je het hier.
       </p>
     );
@@ -32,9 +32,9 @@ export function PriceChart({ history, now }: { history: [number, number][]; now:
   return (
     <figure>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Prijsverloop">
-        <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="#171a18" strokeWidth="2.5" strokeLinejoin="round" />
         {history.map(([t, p]) => (
-          <circle key={t} cx={x(t)} cy={y(p)} r="4" fill="var(--surface)" stroke="var(--accent)" strokeWidth="2" />
+          <circle key={t} cx={x(t)} cy={y(p)} r="4" fill="#ffffff" stroke="#f5d547" strokeWidth="2.5" />
         ))}
         <text x={pad.l} y={H - 6} fontSize="12" fill="var(--muted)">
           {date(t0)}

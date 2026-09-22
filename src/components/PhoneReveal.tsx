@@ -7,11 +7,11 @@ export function PhoneReveal({ phone }: { phone: string }) {
   const [shown, setShown] = useState(false);
   const tel = phone.replace(/[^\d+]/g, "");
   return shown ? (
-    <a href={`tel:${tel}`} className="flex items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 font-medium text-bg">
+    <a href={`tel:${tel}`} className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[14.5px] text-white hover:bg-black">
       <PhoneIcon /> {phone}
     </a>
   ) : (
-    <button onClick={() => setShown(true)} className="flex items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 font-medium text-bg">
+    <button onClick={() => setShown(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[14.5px] text-white hover:bg-black">
       <PhoneIcon /> Toon telefoonnummer
     </button>
   );
