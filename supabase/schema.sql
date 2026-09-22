@@ -114,7 +114,7 @@ create table if not exists private_listings (
                         check (status in ('pending', 'approved', 'rejected', 'sold')),
   data                jsonb not null,          -- PrivateAd uit src/lib/private.ts
   photos              text[] not null default '{}',  -- publieke URL's in de Sevalla-bucket
-  phone               text not null,
+  -- telefoonnummer staat in private_listing_phones (niet publiek leesbaar)
   reject_reason       text,
   created_at          timestamptz not null default now(),
   approved_at         timestamptz,
@@ -176,7 +176,7 @@ begin
   if new.status not in ('pending', 'sold') and new.status is distinct from old.status then
     raise exception 'Status % mag je niet zelf instellen', new.status;
   end if;
-  if new.data is distinct from old.data or new.photos is distinct from old.photos or new.phone is distinct from old.phone then
+  if new.data is distinct from old.data or new.photos is distinct from old.photos then
     new.status := 'pending';
     new.approved_at := null;
     new.expires_at := null;
@@ -223,3 +223,58 @@ $$;
 grant execute on function renew_private_listing(uuid) to authenticated;
 
 -- Foto's staan in een Sevalla object-storage bucket, niet in Supabase Storage.
+
+-- ─────────────────────────────────────────────────────────────
+-- Telefoonnummers apart houden
+--
+-- De publieke leesregel op private_listings geeft toegang tot álle kolommen van een goedgekeurde
+-- advertentie. Met het nummer in die tabel kon iedereen met de publieke sleutel in één verzoek alle
+-- telefoonnummers ophalen. Daarom staat het nummer in een eigen tabel die publiek niet leesbaar is;
+-- bezoekers krijgen het per advertentie via ad_phone().
+-- ─────────────────────────────────────────────────────────────
+
+create table if not exists private_listing_phones (
+  listing_id uuid primary key references private_listings(id) on delete cascade,
+  phone      text not null
+);
+
+alter table private_listing_phones enable row level security;
+
+-- Verkoper beheert het nummer van zijn eigen advertentie; beheerders mogen het zien
+drop policy if exists "own phone" on private_listing_phones;
+create policy "own phone" on private_listing_phones for all
+  using (
+    is_admin()
+    or exists (select 1 from private_listings l where l.id = listing_id and l.user_id = auth.uid())
+  )
+  with check (exists (select 1 from private_listings l where l.id = listing_id and l.user_id = auth.uid()));
+
+-- Bestaande nummers verhuizen en de kolom opruimen
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_name = 'private_listings' and column_name = 'phone') then
+    insert into private_listing_phones (listing_id, phone)
+      select id, phone from private_listings where phone is not null
+      on conflict (listing_id) do nothing;
+    alter table private_listings drop column phone;
+  end if;
+end $$;
+
+-- Eén nummer per keer, enkel voor een advertentie die publiek zichtbaar is
+create or replace function ad_phone(ad uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.phone
+    from private_listing_phones p
+    join private_listings l on l.id = p.listing_id
+   where p.listing_id = ad
+     and l.status = 'approved'
+     and l.expires_at > now();
+$$;
+
+grant execute on function ad_phone(uuid) to anon, authenticated;

@@ -56,7 +56,6 @@ export interface PrivateListingRow {
   status: "pending" | "approved" | "rejected" | "sold";
   data: PrivateAd;
   photos: string[];
-  phone: string;
   reject_reason: string | null;
   created_at: string;
   approved_at: string | null;
@@ -94,7 +93,6 @@ export function privateToListing(row: PrivateListingRow, siteUrl = ""): Listing 
     packs: [],
     description: d.description,
     sellerType: d.sellerType ?? "private",
-    phone: row.phone,
     images: row.photos,
     dealer: {
       name: d.sellerType === "business" && d.companyName ? d.companyName : "Particulier",

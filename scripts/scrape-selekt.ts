@@ -41,7 +41,7 @@ const REFRESH_AFTER_H = Number(arg("stale-hours") ?? 24 * 5);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function sitemapIds(): Promise<string[]> {
-  const res = await fetch(`${BASE}/sitemap.xml`, { headers: { "user-agent": "VindEenVolvoBot/0.1 (+https://vindeenvolvo.be)" } });
+  const res = await fetch(`${BASE}/sitemap.xml`, { headers: { "user-agent": "FindMyVolvoBot/0.1 (+https://findmyvolvo.eu)" } });
   if (!res.ok) throw new Error(`sitemap: HTTP ${res.status}`);
   const xml = await res.text();
   const prefix = `${BASE}/${MARKET.path}/store/all/vehicles/`;
@@ -258,6 +258,12 @@ async function main() {
   const ids = await sitemapIds();
   if (ids.length < 50) throw new Error(`Slechts ${ids.length} wagens in de sitemap — afgebroken`);
   const previous = await loadPrevious();
+  // Een afgeknotte sitemap zou alle ontbrekende wagens als verkocht markeren
+  if (previous.size > 100 && ids.length < previous.size * 0.8) {
+    throw new Error(
+      `Sitemap heeft ${ids.length} wagens, vorige run ${previous.size} (< 80%) — afgebroken om geen stock te wissen`,
+    );
+  }
 
   const fresh = ids.filter((id) => !previous.has(id));
   const stale = ids

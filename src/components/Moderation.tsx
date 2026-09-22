@@ -15,10 +15,13 @@ const REASONS = [
   "Verdacht van oplichting",
 ];
 
+/** De advertentie plus het telefoonnummer uit de aparte tabel */
+type PendingAd = PrivateListingRow & { private_listing_phones?: { phone: string }[] };
+
 export function Moderation() {
   const { user, ready } = useAccount();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [ads, setAds] = useState<PrivateListingRow[] | null>(null);
+  const [ads, setAds] = useState<PendingAd[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,8 +31,12 @@ export function Moderation() {
     const { data: admin } = await sb.rpc("is_admin");
     setIsAdmin(Boolean(admin));
     if (!admin) return;
-    const { data } = await sb.from("private_listings").select("*").eq("status", "pending").order("created_at");
-    setAds((data as PrivateListingRow[]) ?? []);
+    const { data } = await sb
+      .from("private_listings")
+      .select("*, private_listing_phones(phone)")
+      .eq("status", "pending")
+      .order("created_at");
+    setAds((data as PendingAd[]) ?? []);
   }, [user]);
 
   useEffect(() => {
@@ -89,7 +96,7 @@ export function Moderation() {
               <Spec k="Kleur" v={ad.data.color} />
               <Spec k="Versnelling" v={ad.data.transmission} />
               <Spec k="Locatie" v={`${ad.data.zip} ${ad.data.city}`} />
-              <Spec k="Telefoon" v={ad.phone} />
+              <Spec k="Telefoon" v={ad.private_listing_phones?.[0]?.phone ?? "—"} />
               <Spec
                 k="Verkoper"
                 v={ad.data.sellerType === "business" ? `Bedrijf: ${ad.data.companyName} (${ad.data.vatNumber})` : "Particulier"}

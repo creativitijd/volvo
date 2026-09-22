@@ -137,10 +137,17 @@ export function SellForm() {
         lon: place.lon,
         description: d.description.trim().slice(0, 2000),
       };
-      const { error } = await sb
+      const { data: created, error } = await sb
         .from("private_listings")
-        .insert({ user_id: user.id, data: ad, photos, phone: d.phone.trim() });
+        .insert({ user_id: user.id, data: ad, photos })
+        .select("id")
+        .single();
       if (error) throw new Error(error.message);
+      // Het nummer staat apart, zodat het niet publiek opvraagbaar is
+      const { error: phoneError } = await sb
+        .from("private_listing_phones")
+        .insert({ listing_id: created.id, phone: d.phone.trim() });
+      if (phoneError) throw new Error(phoneError.message);
       setState("done");
     } catch (err) {
       setState("idle");

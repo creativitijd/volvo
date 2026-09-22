@@ -63,7 +63,7 @@ export default async function PrivateAdPage(props: PageProps<"/particulier/[id]"
             <p className="font-serif text-[40px] leading-none font-normal">{formatEuro(ad.price)}</p>
             <FavoriteButton card={toCard(ad)} />
           </div>
-          {ad.phone && <PhoneReveal phone={ad.phone} />}
+          <PhoneReveal adId={ad.sourceId} />
           <dl className="grid grid-cols-2 gap-x-4 gap-y-4 rounded-3xl bg-[#f6f6f6] p-5 sm:grid-cols-3">
             {specs
               .filter(([, v]) => v)

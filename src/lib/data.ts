@@ -55,7 +55,8 @@ async function fromSupabase(url: string, key: string): Promise<Snapshot> {
 
 /** Goedgekeurde, niet-verlopen particuliere advertenties (RLS laat enkel die door voor de anon key) */
 async function privateAds(url: string, key: string): Promise<Listing[]> {
-  const res = await fetch(`${url}/rest/v1/private_listings?select=*&order=approved_at.desc`, {
+  const columns = "id,status,data,photos,created_at,approved_at,expires_at";
+  const res = await fetch(`${url}/rest/v1/private_listings?select=${columns}&order=approved_at.desc`, {
     headers: { apikey: key, authorization: `Bearer ${key}` },
     next: { revalidate: 3600, tags: ["listings"] },
   });
@@ -69,7 +70,8 @@ export async function getPrivateAd(id: string): Promise<Listing | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const res = await fetch(`${url}/rest/v1/private_listings?select=*&id=eq.${id}`, {
+  const columns = "id,status,data,photos,created_at,approved_at,expires_at";
+  const res = await fetch(`${url}/rest/v1/private_listings?select=${columns}&id=eq.${id}`, {
     headers: { apikey: key, authorization: `Bearer ${key}` },
     next: { revalidate: 300, tags: ["listings"] },
   });

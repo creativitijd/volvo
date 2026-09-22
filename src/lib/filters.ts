@@ -204,3 +204,24 @@ export function fromSearchParams(p: URLSearchParams): Criteria {
   f.hideReserved = p.get("gereserveerd") === "nee";
   return f;
 }
+
+/**
+ * Criteria uit de database (of een oudere versie van de site) naar een geldige vorm brengen.
+ * Alles wordt in de browser ingevuld, maar iemand kan ook rechtstreeks naar de API schrijven:
+ * zonder deze controle laat één kapotte melding de hele mailronde vastlopen.
+ */
+export function sanitizeCriteria(raw: unknown): Criteria {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, 50) : []);
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null);
+  const f: Criteria = { ...EMPTY_CRITERIA };
+  f.country = o.country === "NL" ? "NL" : "BE";
+  f.condition = o.condition === "new" || o.condition === "used" ? o.condition : "all";
+  f.model = typeof o.model === "string" ? o.model : null;
+  f.fuel = typeof o.fuel === "string" ? o.fuel : "all";
+  for (const k of LIST_KEYS) f[k] = list(o[k]);
+  f.maxPrice = num(o.maxPrice);
+  f.maxKm = num(o.maxKm);
+  f.hideReserved = o.hideReserved === true;
+  return f;
+}

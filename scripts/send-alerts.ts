@@ -6,7 +6,7 @@
 // Zonder RESEND_API_KEY draait het script in testmodus: het toont de mails maar verstuurt niets.
 
 import { countryOfSource, type Listing } from "../src/lib/types.ts";
-import { EMPTY_CRITERIA, describe, matches, toSearchParams, type Criteria, type Matchable } from "../src/lib/filters.ts";
+import { describe, matches, sanitizeCriteria, toSearchParams, type Criteria, type Matchable } from "../src/lib/filters.ts";
 import { formatEuro, province } from "../src/lib/format.ts";
 import { privateToListing, type PrivateListingRow } from "../src/lib/private.ts";
 import { supabaseHeaders } from "./supabase.ts";
@@ -155,7 +155,7 @@ async function sendMail(to: string, subject: string, html: string, unsubscribe?:
 async function preview() {
   const { readFile, writeFile } = await import("node:fs/promises");
   const snap = JSON.parse(await readFile(new URL("../data/volvo_be.json", import.meta.url), "utf8"));
-  const criteria: Criteria = { ...EMPTY_CRITERIA, model: "EX30", colors: ["Denim Blue"] };
+  const criteria: Criteria = sanitizeCriteria({ model: "EX30", colors: ["Blauw"] });
   const cars = (snap.listings as Listing[]).filter((l) => matches(toMatchable(l), criteria)).sort((a, b) => a.price - b.price);
   const fake: Alert = {
     id: "preview",
@@ -196,8 +196,8 @@ async function runAlerts(now: Date) {
   const alerts: Alert[] = await rest(
     "/rest/v1/alerts?select=id,user_id,criteria,frequency,unsubscribe_token,last_sent_at,created_at",
   );
-  // Oudere meldingen missen nieuwere velden: aanvullen met de standaardwaarden
-  for (const a of alerts) a.criteria = { ...EMPTY_CRITERIA, ...a.criteria };
+  // Criteria komen uit de database en kunnen alles bevatten: altijd eerst opschonen
+  for (const a of alerts) a.criteria = sanitizeCriteria(a.criteria);
   const due = alerts.filter((a) => isDue(a, now));
   console.log(`${alerts.length} meldingen, ${due.length} nu aan de beurt`);
   if (!due.length) return;
@@ -218,6 +218,20 @@ async function runAlerts(now: Date) {
 
   let sent = 0;
   for (const alert of due) {
+    try {
+      sent += await sendAlert(alert, listings, now);
+    } catch (e) {
+      // Blijft bij deze melding: de rest van de ronde en de verkopersmails gaan gewoon door
+      console.error(`  Melding ${alert.id} overgeslagen:`, e);
+    }
+  }
+  console.log(`✓ ${sent} meldingsmails verstuurd`);
+}
+
+/** Verstuurt één melding; geeft 1 terug als er een mail vertrok */
+async function sendAlert(alert: Alert, listings: Listing[], now: Date): Promise<number> {
+  {
+    let sent = 0;
     const since = Date.parse(alert.last_sent_at ?? alert.created_at);
     const fresh = listings
       // Gereserveerde wagens nooit mailen: die zijn voor de ontvanger meestal al weg
@@ -233,7 +247,7 @@ async function runAlerts(now: Date) {
           sent++;
         } catch (e) {
           console.error(`  Mail voor melding ${alert.id} mislukt:`, e);
-          continue; // last_sent_at niet bijwerken, volgende run opnieuw proberen
+          return 0; // last_sent_at niet bijwerken, volgende run opnieuw proberen
         }
       }
     }
@@ -244,8 +258,8 @@ async function runAlerts(now: Date) {
       headers: { prefer: "return=minimal" },
       body: JSON.stringify({ last_sent_at: now.toISOString() }),
     });
+    return sent;
   }
-  console.log(`✓ ${sent} meldingsmails verstuurd`);
 }
 
 // ── Particuliere verkopers ──────────────────────────────────────────────────

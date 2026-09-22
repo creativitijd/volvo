@@ -86,7 +86,16 @@ export async function saveToSupabase(source: Source, listings: Listing[], now: n
     if (!res.ok) throw new Error(`Supabase history: ${res.status} ${await res.text()}`);
   }
 
-  // 4. Verdwenen wagens op inactief zetten
+  // 4. Verdwenen wagens op inactief zetten — maar nooit een groot deel van een bron in één keer
+  const present = new Set(listings.map((l) => l.id));
+  const gone = [...existing.keys()].filter((id) => !present.has(id)).length;
+  if (existing.size > 100 && gone > existing.size * 0.3) {
+    throw new Error(
+      `${gone} van ${existing.size} wagens (${Math.round((gone / existing.size) * 100)}%) zouden verdwijnen bij ${source} — ` +
+        `afgebroken. Draai opnieuw of verhoog de drempel als dit klopt.`,
+    );
+  }
+
   const res = await fetch(`${rest}/listings?source=eq.${source}&last_seen=lt.${encodeURIComponent(iso)}&active=eq.true`, {
     method: "PATCH",
     headers: { ...headers, prefer: "return=minimal" },

@@ -1,19 +1,53 @@
 "use client";
 
 import { useState } from "react";
+import { getSupabase } from "@/lib/supabase";
 
-/** Telefoonnummer pas tonen na een klik: maakt het minder makkelijk om nummers massaal te verzamelen. */
-export function PhoneReveal({ phone }: { phone: string }) {
-  const [shown, setShown] = useState(false);
-  const tel = phone.replace(/[^\d+]/g, "");
-  return shown ? (
-    <a href={`tel:${tel}`} className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[14.5px] text-white hover:bg-black">
-      <PhoneIcon /> {phone}
-    </a>
-  ) : (
-    <button onClick={() => setShown(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-[14.5px] text-white hover:bg-black">
-      <PhoneIcon /> Toon telefoonnummer
-    </button>
+/**
+ * Telefoonnummer pas ophalen na een klik. Het nummer staat niet in de publieke advertentiegegevens,
+ * dus het is niet in bulk op te vragen; per klik komt er één nummer uit de database.
+ */
+export function PhoneReveal({ adId }: { adId: string }) {
+  const [phone, setPhone] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+
+  async function reveal() {
+    const sb = getSupabase();
+    if (!sb) return;
+    setState("loading");
+    const { data, error } = await sb.rpc("ad_phone", { ad: adId });
+    if (error || !data) {
+      setState("error");
+      return;
+    }
+    setPhone(String(data));
+    setState("idle");
+  }
+
+  if (phone) {
+    return (
+      <a
+        href={`tel:${phone.replace(/[^\d+]/g, "")}`}
+        className="flex items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 font-medium text-bg"
+      >
+        <PhoneIcon /> {phone}
+      </a>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={reveal}
+        disabled={state === "loading"}
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 font-medium text-bg disabled:opacity-60"
+      >
+        <PhoneIcon /> {state === "loading" ? "Even geduld…" : "Toon telefoonnummer"}
+      </button>
+      {state === "error" && (
+        <p className="mt-2 text-sm text-muted">Het nummer ophalen lukte niet. Herlaad de pagina en probeer opnieuw.</p>
+      )}
+    </div>
   );
 }
 
