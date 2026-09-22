@@ -104,13 +104,13 @@ export function DistributionRange({
   const w = Math.max(0, pct(high) - x);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-2 md:gap-4">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3">
         <Bound label="Van" value={labelMin} />
-        <div className="h-px w-3.5 bg-[#d5d5d5]" />
+        <div className="hidden h-px w-3.5 bg-[#d5d5d5] md:block" />
         <Bound label="Tot" value={labelMax} />
-        <div className="flex-1" />
-        <div className="flex flex-wrap gap-1.5">
+        <div className="hidden flex-1 md:block" />
+        <div className="flex w-full gap-1.5 overflow-x-auto md:w-auto md:flex-wrap md:overflow-visible">
           {presets.map((p) => {
             const on = low === p.low && high === p.high;
             return (
@@ -118,7 +118,7 @@ export function DistributionRange({
                 key={p.label}
                 type="button"
                 onClick={() => onChange(p.low, p.high)}
-                className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs ${
+                className={`shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[12px] md:px-3 md:py-1.5 md:text-xs ${
                   on ? "border-ink bg-ink text-white" : "border-[#e3e3e3] bg-white text-[#3d3d3d]"
                 }`}
               >
@@ -130,7 +130,7 @@ export function DistributionRange({
       </div>
 
       <div className="select-none">
-        <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="block h-[72px] w-full overflow-visible">
+        <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="block h-11 w-full overflow-visible md:h-[72px]">
           <defs>
             <clipPath id={clipId}>
               <rect x={x} y={-4} width={w} height={48} />
@@ -185,9 +185,9 @@ export function DistributionRange({
 
 function Bound({ label, value }: { label: string; value: string }) {
   return (
-    <div className="w-[200px] max-w-full rounded-[10px] border border-[#e3e3e3] bg-white px-3 py-2">
+    <div className="min-w-0 flex-1 rounded-[10px] border border-[#e3e3e3] bg-white px-2.5 py-1.5 md:w-[200px] md:flex-none md:px-3 md:py-2">
       <div className="text-[10px] tracking-[0.07em] text-[#a8a8a8] uppercase">{label}</div>
-      <div className="mt-0.5 text-base">{value}</div>
+      <div className="truncate text-[13px] md:mt-0.5 md:text-base">{value}</div>
     </div>
   );
 }

@@ -70,6 +70,22 @@ type SortKey = keyof typeof SORTS;
 type Filters = Criteria & { sort: SortKey };
 type Panel = "model" | "budget" | "km" | "year" | "fuel" | "drive" | "trim" | "motor" | "packs" | "color" | "place" | "offer" | null;
 
+/** Zet het open paneel meteen onder de bijbehorende knop in de verticale lijst. */
+const PANEL_SLOT: Record<Exclude<Panel, null>, string> = {
+  model: "order-[2]",
+  budget: "order-[4]",
+  km: "order-[6]",
+  year: "order-[8]",
+  fuel: "order-[10]",
+  drive: "order-[12]",
+  trim: "order-[14]",
+  color: "order-[16]",
+  place: "order-[18]",
+  offer: "order-[20]",
+  motor: "order-[22]",
+  packs: "order-[24]",
+};
+
 const EMPTY: Filters = { ...EMPTY_CRITERIA, sort: "price-asc" };
 
 function readUrl(): Filters {
@@ -81,11 +97,16 @@ function readUrl(): Filters {
   };
 }
 
+/** Houd de Next-historystaat intact. `null` laat de App Router de pagina opnieuw ophalen. */
+function replaceUrl(url: string) {
+  window.history.replaceState(window.history.state, "", url);
+}
+
 function writeUrl(f: Filters) {
   const p = toSearchParams(f);
   if (f.sort !== "price-asc" && f.sort !== "distance") p.set("sort", f.sort);
   const qs = p.toString();
-  window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  replaceUrl(qs ? `?${qs}` : window.location.pathname);
 }
 
 function countBy<T extends string>(items: Card[], key: (c: Card) => T | T[] | null) {
@@ -116,6 +137,7 @@ function carYear(c: Card) {
 export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedAt: number }) {
   const { favorites, user, ready, requireLogin } = useAccount();
   const resultsRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [f, setF] = useState<Filters>(EMPTY);
   const [shown, setShown] = useState(PAGE);
   const [here, setHere] = useState<Place | null>(null);
@@ -149,6 +171,11 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
   }, [drawer]);
 
   useEffect(() => {
+    if (!panel || !drawer) return;
+    panelRef.current?.scrollIntoView({ block: "nearest" });
+  }, [panel, drawer]);
+
+  useEffect(() => {
     const t = setTimeout(() => {
       setF(readUrl());
       setNow(Date.now());
@@ -157,7 +184,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
         const params = new URLSearchParams(window.location.search);
         params.delete("bewaard");
         const query = params.toString();
-        window.history.replaceState(null, "", query ? `${window.location.pathname}?${query}` : window.location.pathname);
+        replaceUrl(query ? `${window.location.pathname}?${query}` : window.location.pathname);
       }
     }, 0);
     return () => clearTimeout(t);
@@ -401,62 +428,71 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
           </button>
         </div>
         <div className="flex flex-col gap-2 px-4 py-4 md:flex-row md:flex-wrap md:items-center sm:px-5">
-          <Pill label={f.model ?? "Model"} active={Boolean(f.model)} open={panel === "model"} onClick={() => togglePanel("model")} />
+          <Pill className="order-[1] md:order-none" label={f.model ?? "Model"} active={Boolean(f.model)} open={panel === "model"} onClick={() => togglePanel("model")} />
           <Pill
+            className="order-[3] md:order-none"
             label={priceActive ? `${formatEuro(priceLow)} – ${f.maxPrice ? formatEuro(priceHigh) : "…"}` : "Budget"}
             active={priceActive}
             open={panel === "budget"}
             onClick={() => togglePanel("budget")}
           />
           <Pill
+            className="order-[5] md:order-none"
             label={kmActive ? `${Math.round(kmLow / 1000)}k – ${f.maxKm ? Math.round(kmHigh / 1000) + "k" : "…"} km` : "Kilometerstand"}
             active={kmActive}
             open={panel === "km"}
             onClick={() => togglePanel("km")}
           />
           <Pill
+            className="order-[7] md:order-none"
             label={yearActive ? `${yearLow}–${f.maxYear ?? "…"}` : "Bouwjaar"}
             active={yearActive}
             open={panel === "year"}
             onClick={() => togglePanel("year")}
           />
           <Pill
+            className="order-[9] md:order-none"
             label={f.fuel === "all" ? "Brandstof" : (FUEL_TABS.find((t) => t.key === f.fuel)?.label ?? "Brandstof")}
             active={f.fuel !== "all"}
             open={panel === "fuel"}
             onClick={() => togglePanel("fuel")}
           />
           <Pill
+            className="order-[11] md:order-none"
             label={f.drives.length === 1 ? (DRIVE_SHORT[f.drives[0]] ?? "Aandrijving") : f.drives.length ? `${f.drives.length} gekozen` : "Aandrijving"}
             active={f.drives.length > 0}
             open={panel === "drive"}
             onClick={() => togglePanel("drive")}
           />
           <Pill
+            className="order-[13] md:order-none"
             label={f.trims.length ? `${f.trims.length} ${f.trims.length === 1 ? "uitvoering" : "uitvoeringen"}` : "Uitvoering"}
             active={f.trims.length > 0}
             open={panel === "trim"}
             onClick={() => togglePanel("trim")}
           />
-          <Pill label={f.colors.length ? `${f.colors.length} ${f.colors.length === 1 ? "kleur" : "kleuren"}` : "Kleur"} active={f.colors.length > 0} open={panel === "color"} onClick={() => togglePanel("color")} />
-          <Pill label={f.provinces.length ? `${f.provinces.length} ${f.provinces.length === 1 ? "provincie" : "provincies"}` : "Locatie"} active={f.provinces.length > 0} open={panel === "place"} onClick={() => togglePanel("place")} />
+          <Pill className="order-[15] md:order-none" label={f.colors.length ? `${f.colors.length} ${f.colors.length === 1 ? "kleur" : "kleuren"}` : "Kleur"} active={f.colors.length > 0} open={panel === "color"} onClick={() => togglePanel("color")} />
+          <Pill className="order-[17] md:order-none" label={f.provinces.length ? `${f.provinces.length} ${f.provinces.length === 1 ? "provincie" : "provincies"}` : "Locatie"} active={f.provinces.length > 0} open={panel === "place"} onClick={() => togglePanel("place")} />
           <Pill
+            className="order-[19] md:order-none"
             label={f.condition === "all" ? "Aanbod" : f.condition === "new" ? "Stockwagen" : "Volvo Selekt"}
             active={f.condition !== "all" || f.hideReserved}
             open={panel === "offer"}
             onClick={() => togglePanel("offer")}
           />
           {(f.powertrains.length > 0 || panel === "motor") && (
-            <Pill label={f.powertrains.length ? `${f.powertrains.length} motoren` : "Motor"} active={f.powertrains.length > 0} open={panel === "motor"} onClick={() => togglePanel("motor")} />
+            <Pill className="order-[21] md:order-none" label={f.powertrains.length ? `${f.powertrains.length} motoren` : "Motor"} active={f.powertrains.length > 0} open={panel === "motor"} onClick={() => togglePanel("motor")} />
           )}
           {(f.packs.length > 0 || panel === "packs") && (
-            <Pill label={f.packs.length ? `${f.packs.length} pakketten` : "Pakketten"} active={f.packs.length > 0} open={panel === "packs"} onClick={() => togglePanel("packs")} />
+            <Pill className="order-[23] md:order-none" label={f.packs.length ? `${f.packs.length} pakketten` : "Pakketten"} active={f.packs.length > 0} open={panel === "packs"} onClick={() => togglePanel("packs")} />
           )}
-          <SavedButton className="ml-auto max-md:hidden" />
-        </div>
+          <SavedButton className="ml-auto max-md:hidden md:order-none" />
 
         {panel && (
-          <div className="border-t border-[#e8e8e6] px-4 py-3 sm:px-5">
+          <div
+            ref={panelRef}
+            className={`${PANEL_SLOT[panel]} rounded-2xl bg-white p-2 md:order-last md:mt-1 md:-mx-5 md:w-full md:basis-full md:rounded-none md:border-t md:border-[#e8e8e6] md:bg-transparent md:px-5 md:py-3`}
+          >
             {panel === "model" && (
               <ModelPicker
                 models={fuelModels}
@@ -623,7 +659,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             )}
             {panel === "color" && <ColorPanel base={except({ colors: [] })} selected={f.colors} onChange={(v) => set("colors", v)} />}
             {panel === "place" && (
-              <div className="grid gap-6 lg:grid-cols-[minmax(240px,320px)_1fr]">
+              <div className="grid gap-3 lg:grid-cols-[minmax(240px,320px)_1fr] lg:gap-6">
                 <div>
                   <div className="mb-2.5 text-sm font-medium">Waar zoek je?</div>
                   <LocationForm country={f.country} onFound={setPlace} />
@@ -651,7 +687,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
               </div>
             )}
             {panel === "offer" && (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2.5 md:gap-4">
                 <OptionBlock title="Aanbod">
                   {CONDITION_TABS.map((t) => (
                     <OptionChip key={t.key} label={t.label} count={cards.filter((c) => t.key === "all" || c.condition === t.key).length} on={f.condition === t.key} onClick={() => selectCondition(t.key)} />
@@ -669,7 +705,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
               </div>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#eee] pt-3">
+            <div className="mt-3 hidden flex-wrap items-center justify-between gap-3 border-t border-[#eee] pt-3 md:flex">
               <button type="button" onClick={clearAll} className="text-[13.5px] text-[#787878] underline">
                 Wis alle filters
               </button>
@@ -688,6 +724,7 @@ export function Finder({ cards: allCards, updatedAt }: { cards: Card[]; updatedA
             </div>
           </div>
         )}
+        </div>
 
         {chips.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 px-4 pb-4 sm:px-5">
@@ -928,12 +965,24 @@ function SellCard() {
   );
 }
 
-function Pill({ label, active, open, onClick }: { label: string; active: boolean; open: boolean; onClick: () => void }) {
+function Pill({
+  label,
+  active,
+  open,
+  onClick,
+  className = "",
+}: {
+  label: string;
+  active: boolean;
+  open: boolean;
+  onClick: () => void;
+  className?: string;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex w-full items-center rounded-full border px-4 py-2.5 text-[13.5px] whitespace-nowrap md:w-auto ${
+      className={`${className} inline-flex w-full items-center rounded-full border px-4 py-2.5 text-[13.5px] whitespace-nowrap md:w-auto ${
         active ? "border-ink bg-ink text-white" : open ? "border-ink bg-white text-ink" : "border-[#e3e3e3] bg-white text-[#3d3d3d]"
       }`}
     >
@@ -956,7 +1005,7 @@ function Pill({ label, active, open, onClick }: { label: string; active: boolean
 function OptionBlock({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-2 text-sm font-medium">{title}</div>
+      <div className="mb-2 hidden text-sm font-medium md:block">{title}</div>
       <div className="flex max-h-52 flex-wrap gap-1.5 overflow-y-auto">{children}</div>
     </div>
   );
@@ -968,7 +1017,7 @@ function OptionChip({ label, count, on, onClick }: { label: string; count: numbe
       type="button"
       onClick={onClick}
       disabled={!count && !on}
-      className={`inline-flex items-center rounded-full border px-3.5 py-2 text-[13px] whitespace-nowrap ${
+      className={`inline-flex items-center rounded-full border px-2.5 py-1.5 text-[12.5px] whitespace-nowrap md:px-3.5 md:py-2 md:text-[13px] ${
         on ? "border-ink bg-ink text-white" : count ? "border-[#e3e3e3] bg-white text-[#3d3d3d]" : "cursor-not-allowed border-[#e3e3e3] text-[#b9b9b9]"
       }`}
     >
@@ -987,11 +1036,11 @@ function ColorPanel({ base, selected, onChange }: { base: Card[]; selected: stri
   );
   return (
     <div>
-      <div className="mb-3 flex items-baseline justify-between">
+      <div className="mb-2 hidden items-baseline justify-between md:mb-3 md:flex">
         <div className="text-sm font-medium">Kleur</div>
         <div className="text-[12.5px] text-muted">{selected.length ? selected.join(", ") : "alle kleuren"}</div>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 lg:grid-cols-8">
         {families.map(({ name, hex }) => {
           const on = selected.includes(name);
           const count = n.get(name) ?? 0;
@@ -1000,10 +1049,10 @@ function ColorPanel({ base, selected, onChange }: { base: Card[]; selected: stri
               key={name}
               type="button"
               onClick={() => onChange(on ? selected.filter((x) => x !== name) : [...selected, name])}
-              className={`flex items-center gap-2 rounded-xl border bg-white px-2.5 py-2 text-left ${on ? "border-ink shadow-[0_0_0_1px_#171a18]" : "border-[#e9e9e9]"} ${count ? "" : "opacity-45"}`}
+              className={`flex items-center gap-1.5 rounded-lg border bg-white px-1.5 py-1.5 text-left md:gap-2 md:rounded-xl md:px-2.5 md:py-2 ${on ? "border-ink shadow-[0_0_0_1px_#171a18]" : "border-[#e9e9e9]"} ${count ? "" : "opacity-45"}`}
             >
               <span
-                className="size-[26px] shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]"
+                className="size-5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)] md:size-[26px]"
                 style={{ background: hex || "conic-gradient(#c33, #cc3, #3c6, #36c, #c3c, #c33)" }}
               />
               <span className="min-w-0">

@@ -33,7 +33,7 @@ export function ModelPicker({
 }) {
   const sorted = sortModels(models);
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9">
+    <div className="grid grid-cols-4 gap-1.5 md:grid-cols-6 md:gap-2 lg:grid-cols-9">
       {sorted.map((m) => {
         const active = selected === m.model;
         return (
@@ -47,10 +47,12 @@ export function ModelPicker({
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={modelIconSrc(m.model)} alt="" className="mx-auto mt-2 h-[78px] w-[76%] object-contain" />
-            <div className="flex items-center justify-between gap-1.5 px-2.5 pt-1 pb-2.5">
-              <span className="truncate text-[13.5px] font-semibold">{m.model.replace(" Cross Country", " CC")}</span>
-              <span className="shrink-0 rounded-full bg-mark px-1.5 py-0.5 text-[11px] font-medium text-ink">{m.count}</span>
+            <img src={modelIconSrc(m.model)} alt="" className="mx-auto mt-1 h-11 w-[78%] object-contain md:mt-2 md:h-[78px]" />
+            <div className="flex flex-col items-center gap-0.5 px-1 pt-0.5 pb-1.5 md:flex-row md:justify-between md:gap-1.5 md:px-2.5 md:pt-1 md:pb-2.5">
+              <span className="text-center text-[12px] leading-tight font-semibold md:truncate md:text-left md:text-[13.5px]">
+                {m.model.replace(" Cross Country", " CC")}
+              </span>
+              <span className="shrink-0 rounded-full bg-mark px-1.5 py-0.5 text-[10px] font-medium text-ink md:text-[11px]">{m.count}</span>
             </div>
           </button>
         );

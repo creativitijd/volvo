@@ -13,13 +13,10 @@ export default async function Home() {
 
   const hero = (
     <p className="font-serif mt-4 max-w-[760px] text-[18px] leading-snug font-light tracking-tight text-[#3d3d3d] sm:mt-6 sm:text-[23px]">
-      Alle{" "}
       <span className="font-sans inline-block translate-y-[-1px] rounded-full bg-mark px-2.5 py-0.5 align-middle text-[15px] font-semibold text-ink sm:px-3 sm:text-[19px]">
         {count}
       </span>{" "}
       Volvo&apos;s in België en Nederland.
-      <br />
-      Steeds gratis en onafhankelijk.
     </p>
   );
 
