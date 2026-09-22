@@ -7,24 +7,24 @@ import { SiteMenu } from "./SiteMenu";
 export function SiteShell({ children, hero }: { children: ReactNode; hero?: ReactNode }) {
   return (
     <div className="min-h-dvh bg-bg text-ink">
-      <header className="mx-auto flex max-w-[1400px] flex-wrap items-start justify-between gap-6 px-5 pt-6 pb-5 sm:px-7">
-        <div className="min-w-0">
-          <Link href="/" className="flex items-center gap-3">
+      <header className="mx-auto max-w-[1400px] px-5 pt-6 pb-5 sm:px-7">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.webp" alt="" className="h-[52px] w-[58px] object-contain" />
+            <img src="/logo.webp" alt="" className="h-[52px] w-[58px] shrink-0 object-contain" />
             <span className="text-[17px] font-semibold tracking-tight">Vind een Volvo</span>
           </Link>
-          {hero}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="max-md:hidden">
-            <CountrySwitch />
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="max-md:hidden">
+              <CountrySwitch />
+            </div>
+            <div className="max-md:hidden">
+              <AccountMenu />
+            </div>
+            <SiteMenu />
           </div>
-          <div className="max-md:hidden">
-            <AccountMenu />
-          </div>
-          <SiteMenu />
         </div>
+        {hero}
       </header>
 
       <main className="mx-auto max-w-[1400px] px-5 pb-6 sm:px-7">{children}</main>

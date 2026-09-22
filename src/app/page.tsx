@@ -12,9 +12,9 @@ export default async function Home() {
   const count = cards.length.toLocaleString("nl-BE");
 
   const hero = (
-    <p className="font-serif mt-6 max-w-[760px] text-[22px] leading-snug font-light tracking-tight text-[#3d3d3d] sm:text-[23px]">
+    <p className="font-serif mt-4 max-w-[760px] text-[18px] leading-snug font-light tracking-tight text-[#3d3d3d] sm:mt-6 sm:text-[23px]">
       Alle{" "}
-      <span className="font-sans inline-block translate-y-[-1px] rounded-full bg-mark px-3 py-0.5 align-middle text-[18px] font-semibold text-ink sm:text-[19px]">
+      <span className="font-sans inline-block translate-y-[-1px] rounded-full bg-mark px-2.5 py-0.5 align-middle text-[15px] font-semibold text-ink sm:px-3 sm:text-[19px]">
         {count}
       </span>{" "}
       Volvo&apos;s in België en Nederland.

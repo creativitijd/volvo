@@ -1,6 +1,6 @@
 {
   "name": "vind-een-volvo",
-  "version": "0.2.55",
+  "version": "0.2.59",
   "private": true,
   "scripts": {
     "dev": "next dev",

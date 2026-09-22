@@ -67,7 +67,7 @@ export function SiteMenu() {
           </button>
         </div>
         <div className="px-6 pb-2 md:hidden">
-          <CountrySwitch />
+          <CountrySwitch equal />
         </div>
         <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3.5">
           {ITEMS.map(([href, label]) => (
