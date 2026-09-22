@@ -53,6 +53,11 @@ jobs:
     if: ${{ always() }} # ook als één bron faalde, gaan de mails voor de andere uit
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Op job-niveau: de env van een stap bestaat nog niet wanneer het if-veld van diezelfde stap
+    # beoordeeld wordt, waardoor de verversing altijd oversloeg.
+    env:
+      REVALIDATE_URL: ${{ secrets.REVALIDATE_URL }}
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,9 +70,6 @@ jobs:
           ALERT_FROM: ${{ secrets.ALERT_FROM }}
           SITE_URL: ${{ secrets.SITE_URL }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-      - name: Pagina verversen op Vercel
+      - name: Site verversen
         if: ${{ env.REVALIDATE_URL != '' }}
         run: 'curl -fsS -X POST "$REVALIDATE_URL" -H "authorization: Bearer $REVALIDATE_SECRET"'
-        env:
-          REVALIDATE_URL: ${{ secrets.REVALIDATE_URL }}
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
